@@ -1,0 +1,1 @@
+import{aN as t}from"./index-DlbBJ3bC.js";function e(e){return t.post("saler_tools/identify/add",e)}function s(e){return t.get("saler_tools/identify/lists",e)}function i(e){return t.get(`saler_tools/identify/detail/${e}`)}export{i as a,e as b,s as g};
