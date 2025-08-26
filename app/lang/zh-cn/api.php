@@ -30,7 +30,7 @@ return [
     'AGREEMENT_TYPE_NOT_EXIST' => '协议类型不存在',
     'FIELD_NOT_FOUND' => '找不到要修改的字段',
     'REFRESH_SUCCESS' => '刷新成功',
-    'CAPTCHA_ERROR' => '验证码有误',
+    'CAPTCHA_ERROR' => '验证码有误更新后再次输入',
     'ADDON_INSTALL_SUCCESS' => '插件安装成功',
     'ADDON_UNINSTALL_SUCCESS' => '插件卸载成功',
     'DATA_GET_FAIL' => '数据获取失败',
