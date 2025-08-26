@@ -84,7 +84,7 @@ class UserService extends BaseAdminService
         $user = $user_model->where('uid', $this->uid)->findOrEmpty();
 
         if (!check_password($password, $user->password)) {
-            return fail('user_password_error');
+            return fail('旧密码错误');
         }
 
         $captcha_service = new CaptchaService();
@@ -123,7 +123,7 @@ class UserService extends BaseAdminService
         $user = $user_model->where('uid', $this->uid)->findOrEmpty();
 
         if (!check_password($old_password, $user->password)) {
-            return fail('user_password_error');
+            return fail('旧密码错误');
         }
 
         $user->password = create_password($password);
@@ -145,7 +145,7 @@ class UserService extends BaseAdminService
         $user = $user_model->where('uid', $this->uid)->findOrEmpty();
 
         if (!check_password($password, $user->password)) {
-            return fail('user_password_error');
+            return fail('密码错误');
         }
 
         $user_oauth_model = new UserOauth();
@@ -215,7 +215,7 @@ class UserService extends BaseAdminService
         if ($user->isEmpty()) return fail();
 
         if (!check_password($data['password'], $user->password)) {
-            return fail('user_password_error');
+            return fail('密码错误');
         }
 
         $user->status = 0;
