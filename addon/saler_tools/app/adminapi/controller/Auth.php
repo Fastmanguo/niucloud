@@ -117,7 +117,18 @@ class Auth extends BaseAdminController
             'role_name.require' => '',
             'rules.default'     => [],
             'status.default'    => RoleStatusDict::ON
-        ]);
+        ], 'post');
+        
+        // 检查同名称身份是否已存在
+        $existingRole = \app\model\sys\SysRole::where([
+            ['site_id', '=', $this->site_id],
+            ['role_name', '=', $data['role_name']]
+        ])->find();
+        
+        if ($existingRole) {
+            return fail('身份已存在');
+        }
+        
         (new RoleService())->add($data);
         return success('ADD_SUCCESS');
     }
@@ -138,7 +149,19 @@ class Auth extends BaseAdminController
             'role_name.require' => 'role_name_require',
             'rules.default'     => [],
             'status.default'    => RoleStatusDict::ON
-        ]);
+        ], 'put');
+        
+        // 检查同名称身份是否已存在（排除当前编辑的角色）
+        $existingRole = \app\model\sys\SysRole::where([
+            ['site_id', '=', $this->site_id],
+            ['role_name', '=', $data['role_name']],
+            ['role_id', '<>', $data['role_id']]
+        ])->find();
+        
+        if ($existingRole) {
+            return fail('身份已存在');
+        }
+        
         (new RoleService())->edit($data['role_id'], $data);
         return success('EDIT_SUCCESS');
     }
