@@ -1,0 +1,2 @@
+<?php /*a:0:{}*/ ?>
+{"title":"欢迎使用84000寻找-<?php echo htmlentities($email_sub); ?>","content":"<p style=\"text-align: center;\"><span class=\"el-tag el-tag--primary el-tag--light\"><span class=\"el-tag__content\"><img src=\"https:\/\/app.84000lookingfor.com\/upload\/attachment\/image\/0\/202502\/19\/1739974244925b7209a3865a5d3e9c0f0e6b62bbe2_local.jpg\"\/><\/span><\/span><\/p><p style=\"text-align: center;\"><span style=\"font-size: 20px;\">您的验证码为<?php echo htmlentities($code); ?>，切勿将验证码告知他人！<\/span><\/p>"}
