@@ -1,1 +1,0 @@
-import{_ as a,c as e,w as s,n as t,i as o,b as r,D as n,e as l,o as c,f}from"./index-DlbBJ3bC.js";const u=a({},[["render",function(a,u){const d=r(l("up-navbar"),n),i=o;return c(),e(i,{style:t(a.themeColor())},{default:s((()=>[f(d,{title:"营销海报",autoBack:!0,safeAreaInsetTop:!0,placeholder:!0})])),_:1},8,["style"])}]]);export{u as default};

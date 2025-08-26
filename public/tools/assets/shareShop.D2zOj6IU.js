@@ -1,1 +1,0 @@
-import{aN as s}from"./index-DlbBJ3bC.js";const e=e=>s.get("saler_tools/shop_share/lists",e),o=e=>s.post("saler_tools/shop_share/create",e),a=e=>s.delete(`saler_tools/shop_share/${e}`,null);export{o as c,a as d,e as g};

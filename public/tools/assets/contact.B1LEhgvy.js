@@ -1,1 +1,0 @@
-import{aN as o}from"./index-DlbBJ3bC.js";function n(n){return o.get("online_expo/goods_enquiry/lists",n)}function e(n){return o.put("online_expo/goods_enquiry/post_bid",n)}function t(n){return o.put("online_expo/goods_enquiry/re_bid",n)}const i=n=>o.put("online_expo/contact/shop",n);export{t as a,n as b,e,i as g};

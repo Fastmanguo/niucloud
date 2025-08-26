@@ -1,1 +1,0 @@
-import{aN as t}from"./index-DlbBJ3bC.js";function o(){return t.get("saler_tools/shop_contact/list")}const s=o=>t.get(`saler_tools/shop_contact/detail/${o}`),a=o=>t.put("saler_tools/shop_contact/edit",o),e=o=>t.post("saler_tools/shop_contact/add",o),l=o=>t.delete(`saler_tools/shop_contact/del/${o}`,null);export{s as a,e as b,l as d,a as e,o as g};

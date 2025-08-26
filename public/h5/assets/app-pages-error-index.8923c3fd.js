@@ -1,1 +1,0 @@
-import{_ as a,o as s,c as t,w as e,y as o,l as n,m as d}from"./index-cbc43b2f.js";const l=a({},[["render",function(a,l){const r=o;return s(),t(r,null,{default:e((()=>[n(r,{class:"empty-box"},{default:e((()=>[d(" 店铺已关闭 ")])),_:1})])),_:1})}],["__scopeId","data-v-3f322a09"]]);export{l as default};

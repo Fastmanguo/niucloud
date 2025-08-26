@@ -1,6 +1,0 @@
-tests/crop/
-tests/poster/
-tests/server/static/
-vendor/
-composer.lock
-.idea
