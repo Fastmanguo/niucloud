@@ -39,7 +39,10 @@ class AuthService extends BaseAdminService
             ->append(['status_name'])
             ->hasWhere('userinfo', function ($query) use ($params) {
                 $condition = [];
-                if (isset($params['search']) && $params['search'] !== '') $condition[] = ['username', 'like', "%{$this->model->handelSpecialCharacter($params['search'])}%"];
+                if (isset($params['search']) && $params['search'] !== '') {
+                    $sysUserRole = new SysUserRole();
+                    $condition[] = ['real_name', 'like', "%{$sysUserRole->handelSpecialCharacter($params['search'])}%"];
+                }
                 $query->where($condition);
             })
             ->where([['SysUserRole.site_id', '=', $this->site_id]]);
