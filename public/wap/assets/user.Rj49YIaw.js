@@ -1,0 +1,1 @@
+import{aD as s}from"./index-VHk1sExB.js";function t(t){return s.put("saler_tools/register/send_captcha",t)}function r(t){return s.post("saler_tools/register/index",t)}function e(t){return s.put("saler_tools/user/password",t)}function o(t){return s.get("saler_tools/collect/lists",t)}export{e as a,t as e,o as g,r as u};

@@ -1,0 +1,1 @@
+import{aD as s}from"./index-VHk1sExB.js";function o(){return s.get("saler_tools/shop/detail")}function t(o){return s.put("saler_tools/shop/edit",o)}const e=o=>s.post("saler_tools/shop/apply",o),a=()=>s.get("saler_tools/currency/type");export{e as a,a as b,t as e,o as g};
