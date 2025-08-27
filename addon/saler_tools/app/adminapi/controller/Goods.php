@@ -67,7 +67,7 @@ class Goods extends BaseAdminController
             'goods_image.require'           => 'goods_image_be_empty',
             'detail_image.default'          => [],
             'goods_name.require'            => 'goods_name_require',
-            'goods_desc.default'            => '',
+            'goods_desc.require'            => '商品描述不能为空',
             'goods_attachment.default'      => '', // 商品属性 全新 二手？
             'goods_attribute.default'       => [], // 商品附件
             'goods_tag.default'             => [],

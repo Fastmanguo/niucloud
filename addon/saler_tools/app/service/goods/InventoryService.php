@@ -59,7 +59,8 @@ class InventoryService extends BaseAdminService
                 }
                 break;
             case 'temp_store': // 临时仓盘点
-                if (empty($data['store_id'])) return fail('store_id_not_empty');
+//                if (empty($data['store_id'])) return fail('store_id_not_empty');
+                if (empty($data['store_id'])) return fail('临时仓商品不能为空');
                 $goods_model = $goods_model->where('store_id', $data['store_id']);
                 break;
             case 'pawned_goods': // 质押盘点

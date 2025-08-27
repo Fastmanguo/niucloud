@@ -40,6 +40,12 @@ class ShopBill extends BaseAdminController
             "init_others_goods_money.default" => 0,
             "user_money.default"              => 0
         ]);
+        
+        // 三选一必填项校验：is_own_goods、is_pawned_goods、is_others_goods 必须有一个为1
+        if ($data['is_own_goods'] != 1 && $data['is_pawned_goods'] != 1 && $data['is_others_goods'] != 1) {
+            return fail('请选择商品类型：自有商品、质押商品、其他商品必须选择其中一项');
+        }
+        
         return app(ShopBillService::class)->create($data);
     }
 

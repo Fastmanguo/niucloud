@@ -84,7 +84,7 @@ class UserService extends BaseAdminService
         $user = $user_model->where('uid', $this->uid)->findOrEmpty();
 
         if (!check_password($password, $user->password)) {
-            return fail('旧密码错误');
+            return fail('密码错误');
         }
 
         $captcha_service = new CaptchaService();
