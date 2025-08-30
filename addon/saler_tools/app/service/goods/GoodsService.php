@@ -66,7 +66,7 @@ class GoodsService extends BaseAdminService
 
         // 未指定商品类型时查询的只有 自有商品 寄卖商品 其它
         if (empty($params['goods_attribute'])) {
-            $params['goods_attribute'] = ['own_goods', 'consignment_goods', 'others'];
+            $params['goods_attribute'] = ['own_goods', 'consignment_goods', 'others',"pawned_goods"];
         } elseif ($params['goods_attribute'] == 'pawned_goods') {
             if (!empty($params['is_expire'])) {
                 $where[] = ['expire_time', '<', date('Y-m-d H:i:s')];
@@ -76,14 +76,24 @@ class GoodsService extends BaseAdminService
             };
         }
 
+        if(array_key_exists("create_uid",$params) and !empty($params['create_uid'])){
+            $model = $model->where($where)
+                ->withSearch([
+                    'search', 'brand_id', 'series_id', 'model_id', 'create_uid', 'goods_tag', 'target_audience'
+                    , 'category_id', 'is_sale', 'watch_location', 'goods_attribute', 'recycling_time'
+                ], $params)
+                ->order($order)
+                ->with($with);
+        }else{
+            $model = $model->where($where)
+                ->withSearch([
+                    'search', 'brand_id', 'series_id', 'model_id', 'store_id', 'goods_tag', 'target_audience'
+                    , 'category_id', 'is_sale', 'watch_location', 'goods_attribute', 'recycling_time'
+                ], $params)
+                ->order($order)
+                ->with($with);
+        }
 
-        $model = $model->where($where)
-            ->withSearch([
-                'search', 'brand_id', 'series_id', 'model_id', 'store_id', 'goods_tag', 'target_audience'
-                , 'category_id', 'is_sale', 'watch_location', 'goods_attribute', 'recycling_time'
-            ], $params)
-            ->order($order)
-            ->with($with);
 
         return success($this->pageQuery($model));
 

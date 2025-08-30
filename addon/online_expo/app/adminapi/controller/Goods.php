@@ -33,6 +33,7 @@ class Goods extends BaseAdminController
             'appraiser_uid.query' => '',
             'create_uid.query'    => '',
             'category_id.query'   => '',
+            'brand_id.query'      => '',  // 新增品牌ID参数
             'search.query'        => '',
             'query_type.default'  => 'goods',
             'country_code.query'  => '',

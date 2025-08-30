@@ -73,7 +73,7 @@ class OrderService extends BaseAdminService
                 $where[] = ['order_status', '=', $params['order_status']];
             }
         } else {
-            $where[] = ['order_status', 'in', [self::ADD_ORDER, self::FINISH_ORDER, self::CANCEL_ORDER, self::RETURN_ORDER]];
+            $where[] = ['order_status', 'in', [self::ADD_ORDER, self::FINISH_ORDER, self::CANCEL_ORDER, self::RETURN_ORDER,self::LOCK_ORDER]];
         }
 
 

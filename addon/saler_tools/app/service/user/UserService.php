@@ -219,8 +219,10 @@ class UserService extends BaseAdminService
         }
 
         $user->status = 0;
-
         $user->save();
+
+        // 清理用户token，确保注销后无法登录
+        \app\service\admin\auth\LoginService::clearToken($this->uid);
 
         return success();
     }

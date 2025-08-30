@@ -41,7 +41,7 @@ class GoodsService extends BaseAdminService
         $field = 'goods_id,site_id,goods_cover,goods_video,goods_image,condition,detail_image,category_id,goods_name,goods_desc,goods_attribute
         ,goods_attachment,brand_id,series_id,model_id,peer_price,update_time,currency_code';
 
-        $model = $model->where($where)->withSearch(['category_id', 'search', 'site_id'], $data)
+        $model = $model->where($where)->withSearch(['category_id', 'search', 'site_id', 'brand_id'], $data)
             ->field($field)
             ->order($order);
 
