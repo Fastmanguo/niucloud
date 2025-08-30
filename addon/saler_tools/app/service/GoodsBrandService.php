@@ -33,12 +33,15 @@ class GoodsBrandService extends BaseAdminService
 
     public function list()
     {
-        return cache_remember($this->app->appCache->goods_brand, function () {
+        // 临时禁用缓存进行测试
+//        return cache_remember($this->app->appCache->goods_brand, function () {
+        return cache_remember($this->app->appCache->goods_brand . '_' . $this->site_id, function () {
 
             $model = new SalerToolsGoodsBrand();
 
             $list = $model->withSearch(['read_site_id'], ['read_site_id' => $this->site_id])
                 ->field('brand_id,brand_name,brand_en,letter_en,letter,pinyin,logo')
+                ->order('letter asc, brand_id asc')
                 ->select()->each(function ($item) {
                     $item->show_name = $item->brand_name . '/' . $item->brand_en;
                 });
