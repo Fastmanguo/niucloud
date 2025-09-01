@@ -267,7 +267,7 @@ class UserService extends BaseAdminService
      * @return SysUser|array|mixed|Model
      */
     public function getUserInfoByUsername(string $username){
-        return $this->model->where([['username', '=',$username], ['status', '=', 1]])->findOrEmpty();
+        return $this->model->where([['username', '=',$username], ['is_del', '=', 0]])->findOrEmpty();
     }
 
     /**

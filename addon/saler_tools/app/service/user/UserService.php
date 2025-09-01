@@ -218,7 +218,7 @@ class UserService extends BaseAdminService
             return fail('密码错误');
         }
 
-        $user->status = 0;
+        $user->is_del = 1;
         $user->save();
 
         // 清理用户token，确保注销后无法登录
