@@ -11,6 +11,7 @@ namespace addon\online_expo\app\service;
 use addon\saler_tools\app\common\BaseAdminService;
 use addon\online_expo\app\model\Goods as GoodsModel;
 use addon\saler_tools\app\service\shop\ShopService;
+use app\model\sys\SysUser;
 use think\facade\Log;
 
 /**
@@ -76,6 +77,10 @@ class GoodsService extends BaseAdminService
 
         StatService::setLog($goods->site_id, $this->uid, $goods_id, 1);
 
+        #获取当前登录用户信息
+        $user   = (new SysUser())->where('uid', $this->uid)->field("last_ip")->findOrEmpty();
+        $goods['currency_info'] = $this->getLocationByIP( $user['last_ip']);
+
         # 金额 货币类型
         $money = $goods['peer_price'];
         $currency_code = $goods['currency_code'];
@@ -97,6 +102,59 @@ class GoodsService extends BaseAdminService
 
         return success($goods->toArray());
 
+    }
+
+
+
+
+    #根据ip获取国家信息
+    public function getLocationByIP($ip ) {
+
+        // 检查是否为私有IP地址
+        $isPrivateIP = false;
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE) === false) {
+            $isPrivateIP = true;
+        }
+
+        // 如果是私有IP或本地IP，使用公共IP进行查询
+        if ($isPrivateIP || in_array($ip, ['127.0.0.1', '::1', 'localhost'])) {
+            // 尝试获取真实的外网IP
+            $publicIP = $this->getPublicIP();
+            if ($publicIP) {
+                $ip = $publicIP;
+            } else {
+                // 如果无法获取公网IP，使用默认IP
+                return "";
+            }
+        }
+
+
+
+        $url = "http://ip-api.com/json/{$ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,currency,currencyCode";
+
+        $response = $this->makeRequest($url);
+        if ($response && isset($response['status']) && $response['status'] === 'success') {
+            return $response['currency'];
+        }
+
+        return "";
+    }
+
+    private function makeRequest($url) {
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 10,
+                'user_agent' => 'IPCurrencyConverter/1.0'
+            ]
+        ]);
+
+        $response = @file_get_contents($url, false, $context);
+
+        if ($response === false) {
+            return null;
+        }
+
+        return json_decode($response, true);
     }
 
     #货币转换

@@ -30,7 +30,7 @@ class UserService extends BaseAdminService
 
     public function info()
     {
-        $fields = 'uid,username,head_img,real_name,status,create_time';
+        $fields = 'uid,username,head_img,real_name,status,create_time,last_ip';
         $user   = (new SysUser())->where('uid', $this->uid)->field($fields)->findOrEmpty();
 
         $user_oauth = (new UserOauth())->where('uid', $this->uid)->findOrEmpty();
