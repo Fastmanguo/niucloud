@@ -58,7 +58,7 @@ class GoodsService extends BaseAdminService
         $model = new GoodsModel();
 
         $field = 'goods_id,site_id,goods_cover,goods_video,condition,goods_image,detail_image,category_id,goods_name,goods_desc,goods_attribute,goods_attachment
-        ,brand_id,series_id,model_id,peer_price,is_sale,update_time,currency_code';
+        ,brand_id,series_id,model_id,peer_price,is_sale,update_time,currency_code,country_code';
 
         $goods = $model->where('is_online_expo', 1)
             ->where('goods_id', $goods_id)
@@ -76,8 +76,118 @@ class GoodsService extends BaseAdminService
 
         StatService::setLog($goods->site_id, $this->uid, $goods_id, 1);
 
+        # 金额 货币类型
+        $money = $goods['peer_price'];
+        $currency_code = $goods['currency_code'];
+
+        $money_result_list = [
+            ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($money,$currency_code,'CNY')],
+            ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($money,$currency_code,'USD')],
+            ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($money,$currency_code,'EUR')],
+            ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($money,$currency_code,'JPY')],
+            ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($money,$currency_code,'GBP')],
+            ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($money,$currency_code,'HKD')],
+            ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($money,$currency_code,'KRW')],
+            ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($money,$currency_code,'SGD')],
+            ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($money,$currency_code,'AUD')],
+            ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($money,$currency_code,'CAD')]
+        ];
+
+        $goods['money_result_list'] = $money_result_list;
+
         return success($goods->toArray());
 
     }
 
+    #货币转换
+    function convertCurrency($amount, $from_currency, $to_currency) {
+        // 支持的货币列表
+        $supported_currencies = [
+            'USD' => '美元',
+            'CNY' => '人民币',
+            'EUR' => '欧元',
+            'JPY' => '日元',
+            'GBP' => '英镑',
+            'HKD' => '港币',
+            'KRW' => '韩元',
+            'SGD' => '新加坡元',
+            'AUD' => '澳元',
+            'CAD' => '加拿大元'
+        ];
+
+// 汇率表（简化版本，实际应用中应该从API获取实时汇率）
+        $exchange_rates = [
+            'USD' => [
+                'CNY' => 7.23,
+                'EUR' => 0.92,
+                'JPY' => 148.50,
+                'GBP' => 0.79,
+                'HKD' => 7.82,
+                'KRW' => 1330.00,
+                'SGD' => 1.35,
+                'AUD' => 1.52,
+                'CAD' => 1.36,
+                'USD' => 1.00
+            ],
+            'CNY' => [
+                'USD' => 0.138,
+                'EUR' => 0.127,
+                'JPY' => 20.54,
+                'GBP' => 0.109,
+                'HKD' => 1.082,
+                'KRW' => 183.96,
+                'SGD' => 0.187,
+                'AUD' => 0.210,
+                'CAD' => 0.188,
+                'CNY' => 1.00
+            ],
+            'EUR' => [
+                'USD' => 1.087,
+                'CNY' => 7.86,
+                'JPY' => 161.41,
+                'GBP' => 0.859,
+                'HKD' => 8.50,
+                'KRW' => 1445.65,
+                'SGD' => 1.47,
+                'AUD' => 1.65,
+                'CAD' => 1.48,
+                'EUR' => 1.00
+            ],
+            'JPY' => [
+                'USD' => 0.0067,
+                'CNY' => 0.0487,
+                'EUR' => 0.0062,
+                'GBP' => 0.0053,
+                'HKD' => 0.0527,
+                'KRW' => 8.96,
+                'SGD' => 0.0091,
+                'AUD' => 0.0102,
+                'CAD' => 0.0092,
+                'JPY' => 1.00
+            ],
+            'GBP' => [
+                'USD' => 1.266,
+                'CNY' => 9.15,
+                'EUR' => 1.164,
+                'JPY' => 187.97,
+                'HKD' => 9.90,
+                'KRW' => 1683.54,
+                'SGD' => 1.71,
+                'AUD' => 1.92,
+                'CAD' => 1.72,
+                'GBP' => 1.00
+            ]
+        ];
+
+
+        if (!is_numeric($amount) || $amount <= 0) {
+            return 0;
+        }
+        $rate = $exchange_rates[$from_currency][$to_currency];
+        $result = $amount * $rate;
+        // 格式化输出
+        $formatted_result = number_format($result, 2);
+
+        return $formatted_result;
+    }
 }
