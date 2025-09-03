@@ -11,6 +11,7 @@ namespace addon\online_expo\app\service;
 use addon\saler_tools\app\common\BaseAdminService;
 use addon\online_expo\app\model\Goods as GoodsModel;
 use addon\saler_tools\app\service\shop\ShopService;
+use addon\online_expo\app\service\StatService;
 use app\model\sys\SysUser;
 use think\facade\Log;
 
@@ -47,6 +48,20 @@ class GoodsService extends BaseAdminService
             ->order($order);
 
         $result = $this->pageQuery($model);
+
+
+        #获取当前登录用户信息
+        $user   = (new SysUser())->where('uid', $this->uid)->field("last_ip")->findOrEmpty();
+        $currency_info = $this->getLocationByIP($user['last_ip']);
+
+        foreach ($result['data'] as $key => &$val){
+            if($val['peer_price'] != 0 && !empty($currency_info)){
+                $val['peer_price_'] = $this->convertCurrency($val['peer_price'], $val['currency_code'], $currency_info);
+                $val['currency_code_'] = $currency_info;
+            }
+        }
+
+
 
         // TODO： 处理收藏字段
 
@@ -108,7 +123,11 @@ class GoodsService extends BaseAdminService
 
 
     #根据ip获取国家信息
-    public function getLocationByIP($ip ) {
+    public function getLocationByIP($ip) {
+        // 检查IP是否为空
+        if (empty($ip)) {
+            return "";
+        }
 
         // 检查是否为私有IP地址
         $isPrivateIP = false;
@@ -157,8 +176,44 @@ class GoodsService extends BaseAdminService
         return json_decode($response, true);
     }
 
+    /**
+     * 获取公网IP地址
+     */
+    private function getPublicIP() {
+        $urls = [
+            'https://api.ipify.org',
+            'https://icanhazip.com',
+            'https://ident.me'
+        ];
+
+        foreach ($urls as $url) {
+            try {
+                $context = stream_context_create([
+                    'http' => [
+                        'timeout' => 5,
+                        'user_agent' => 'IPCurrencyConverter/1.0'
+                    ]
+                ]);
+
+                $ip = @file_get_contents($url, false, $context);
+                if ($ip !== false && filter_var(trim($ip), FILTER_VALIDATE_IP)) {
+                    return trim($ip);
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
     #货币转换
     function convertCurrency($amount, $from_currency, $to_currency) {
+        // 检查参数是否有效
+        if (!is_numeric($amount) || $amount <= 0 || empty($from_currency) || empty($to_currency)) {
+            return 0;
+        }
+
         // 支持的货币列表
         $supported_currencies = [
             'USD' => '美元',
@@ -238,9 +293,11 @@ class GoodsService extends BaseAdminService
         ];
 
 
-        if (!is_numeric($amount) || $amount <= 0) {
+        // 检查汇率是否存在
+        if (!isset($exchange_rates[$from_currency]) || !isset($exchange_rates[$from_currency][$to_currency])) {
             return 0;
         }
+        
         $rate = $exchange_rates[$from_currency][$to_currency];
         $result = $amount * $rate;
         // 格式化输出
