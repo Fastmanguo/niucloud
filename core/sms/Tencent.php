@@ -75,7 +75,7 @@ class Tencent extends BaseSms
             if (isset($resp[ 'SendStatusSet' ]) && $resp[ 'SendStatusSet' ][ 0 ][ 'Code' ] == 'Ok') {
                 return $resp;
             } else {
-                $message = $res[ 'SendStatusSet' ][ 0 ][ 'Message' ] ?? json_encode($resp, JSON_THROW_ON_ERROR);
+                $message = $resp[ 'SendStatusSet' ][ 0 ][ 'Message' ] ?? json_encode($resp, JSON_THROW_ON_ERROR);
                 throw new CommonException($message);
             }
         } catch (Exception $e) {

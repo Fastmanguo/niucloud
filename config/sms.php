@@ -13,7 +13,7 @@ use core\dict\DictLoader;
 
 $system = [
     //默认驱动
-    'default' => 'aliyun',
+    'default' => 'tencent',
     //驱动厂商列表及参数-短信
     'drivers' => [
         //阿里云
@@ -25,6 +25,7 @@ $system = [
         ],
         //腾讯云
         'tencent' => [
+            'driver' => 'core\sms\Tencent',  //反射类的名字
             'secret_id' => '',
             'secret_key' => '',
             'sign' => '',

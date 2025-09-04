@@ -128,3 +128,12 @@ Route::group('payment', function () {
     AdminCheckRole::class,
     AdminLog::class
 ]);
+
+/**
+ * 短信验证码相关
+ */
+Route::group('sms', function () {
+    Route::put('sendIphoneSms', 'app\adminapi\controller\SmsController@sendIphoneSms');
+    Route::post('verify', 'app\adminapi\controller\SmsController@verifySms');
+});
+
