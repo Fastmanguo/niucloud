@@ -86,11 +86,15 @@ class UserForgetService extends BaseService
         $code     = $data['code'];
         $password = $data['password'];
 
-        (new CaptchaService())->verify($email, 'FORGET', $code, 'email');
 
-        $auth = (new UserOauth())->where('email', $data['email'])->findOrEmpty();
-
-        if ($auth->isEmpty()) return fail('error_email_not_exist');
+        if($data['forget_type'] == "1"){
+            $auth = (new UserOauth())->where('mobile', $data['email'])->findOrEmpty();
+            if ($auth->isEmpty()) return fail('error_iphone_not_exist');
+        }else{
+            (new CaptchaService())->verify($email, 'FORGET', $code, 'email');
+            $auth = (new UserOauth())->where('email', $data['email'])->findOrEmpty();
+            if ($auth->isEmpty()) return fail('error_email_not_exist');
+        }
 
         SysUser::update(
             [

@@ -67,13 +67,12 @@ class RegisterService extends BaseAdminService
 
     public function index($data)
     {
-
         $email = $data['email'];
-
-        // 先校验验证码
-        $captcha_service = new CaptchaService();
-
-        $captcha_service->verify($email, 'REGISTER', $data['code'], 'email');
+        if($data['login_type']=="2"){
+            // 先校验验证码
+            $captcha_service = new CaptchaService();
+            $captcha_service->verify($email, 'REGISTER', $data['code'], 'email');
+        }
 
         $user_model       = new SysUser();
         $user_oauth_model = new UserOauth();
@@ -81,26 +80,27 @@ class RegisterService extends BaseAdminService
         // 校验重复
         $user = $user_model->where('username', $email)->findOrEmpty();
         // 邮箱已注册过了
-        if (!$user->isEmpty()) return fail('email_repeat');
-
-        $user_oauth = $user_oauth_model->where('email', $email)->findOrEmpty();
-
-        if (!$user_oauth->isEmpty()) return fail('email_repeat');
+        if (!$user->isEmpty()) return fail('当前账户已注册');
+        if($data['login_type']=="2"){
+            $user_oauth = $user_oauth_model->where('email', $email)->findOrEmpty();
+        }else{
+            $user_oauth = $user_oauth_model->where('mobile', $email)->findOrEmpty();
+        }
+        if (!$user_oauth->isEmpty()) return fail('当前账户已注册');
 
         $user_model->startTrans();
-
         try {
 
             // 获取邀请人
             $invitation_uid = 0;
 
-            if ($data['invitation_code']) {
-                $invitation_uid = $user_oauth_model->where('invitation_code', $data['invitation_code'])->value('uid') ?? 0;
-            }
+//            if ($data['invitation_code']) {
+//                $invitation_uid = $user_oauth_model->where('invitation_code', $data['invitation_code'])->value('uid') ?? 0;
+//            }
 
             $user = $user_model->create([
                 'username'    => $data['email'],
-                'real_name'   => $data['real_name'],
+                'real_name'   => $data['real_name'] ?? '',
                 'head_img'    => '',
                 'password'    => create_password($data['password']),
                 'last_ip'     => $this->request->ip(),

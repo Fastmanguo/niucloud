@@ -41,11 +41,10 @@ class Register extends BaseAdminController
     public function index()
     {
         $data = $this->_vali([
-            'real_name.require'       => 'please_real_name_require',
             'email.require'           => 'please_email_require',
             'code.require'            => 'please_code_require',
             'password.require'        => 'please_password_require',
-            'invitation_code.default' => '',
+            'login_type.require' => '',
         ]);
 
         return app(RegisterService::class)->index($data);

