@@ -30,8 +30,19 @@ class Diy extends BaseAdminController
             'template.query' => '',
         ]);
 
-        return success(app(DiyService::class)->getDiy($data));
+        $result_data = app(DiyService::class)->getDiy($data);
 
+        return success($result_data);
+
+    }
+
+    public function getImages()
+    {
+        $result_data = app(DiyService::class)->getImages();
+        $array_data =  json_decode($result_data['value'], true);
+
+        $images_list = $array_data['value'][1]['list'];
+        return success($images_list);
     }
 
 

@@ -55,6 +55,7 @@ Route::group('saler_tools/sys', function () {
 
     // 获取页面布局
     Route::get('diy', 'addon\saler_tools\app\adminapi\controller\sys\Diy@index');
+    Route::get('get_images', 'addon\saler_tools\app\adminapi\controller\sys\Diy@getImages');
 
     // 获取语言列表
     Route::get('language/list', 'addon\saler_tools\app\adminapi\controller\sys\Language@list');
@@ -84,6 +85,8 @@ Route::group('saler_tools/user_forget', function () {
     Route::get('captcha', 'addon\saler_tools\app\adminapi\controller\UserForget@captcha');
     Route::put('send_code', 'addon\saler_tools\app\adminapi\controller\UserForget@sendCode');
     Route::post('reset', 'addon\saler_tools\app\adminapi\controller\UserForget@resetPassword');
+    Route::post('verify_email', 'addon\saler_tools\app\adminapi\controller\UserForget@verifyEmail');
+    Route::post('real_name_edit', 'addon\saler_tools\app\adminapi\controller\UserForget@realNameEdit');
 });
 
 // 鉴定师

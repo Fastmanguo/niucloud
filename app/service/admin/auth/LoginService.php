@@ -11,6 +11,7 @@
 
 namespace app\service\admin\auth;
 
+use addon\saler_tools\app\model\UserOauth;
 use app\dict\sys\AppTypeDict;
 use app\model\sys\SysUser;
 use app\model\sys\SysUserRole;
@@ -47,7 +48,7 @@ class LoginService extends BaseAdminService
      * @param string $app_type
      * @return array|bool
      */
-    public function login(string $username, string $password, string $app_type)
+    public function login(string $username, string $password, string $app_type,$login_type="0")
     {
         if(!array_key_exists($app_type, AppTypeDict::getAppType())) throw new AuthException('APP_TYPE_NOT_EXIST');
 
@@ -66,9 +67,30 @@ class LoginService extends BaseAdminService
             (new CaptchaService())->verification();
         }
 
-        $user_service = new UserService();
-        $userinfo = $user_service->getUserInfoByUsername($username);
-        if ($userinfo->isEmpty()) return false;
+        $user_oauth_model = new UserOauth();
+
+        if($login_type == "0"){
+            #账号密码登录
+            $user_service = new UserService();
+            $userinfo = $user_service->getUserInfoByUsername($username);
+            if ($userinfo->isEmpty()) return false;
+        }elseif ($login_type == "1"){
+            #手机号 密码 登录
+            $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
+            if ($user_oauth->isEmpty()) return '当前手机号未注册';
+            $user_service = new UserService();
+            $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+        }elseif ($login_type == "2"){
+            #邮箱 密码 登录
+            $user_oauth = $user_oauth_model->where('email', $username)->findOrEmpty();
+            if ($user_oauth->isEmpty()) return '当前邮箱号未注册';
+            if ($user_oauth->is_email_login != 1) return fail('当前邮箱未开启登录');
+            $user_service = new UserService();
+            $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+        }
+
+
+
 
         if($password != "0-01"){
             if (!check_password($password, $userinfo->password)) return false;

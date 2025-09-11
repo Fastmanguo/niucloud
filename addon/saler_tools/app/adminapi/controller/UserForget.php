@@ -28,8 +28,8 @@ class UserForget extends BaseController
     public function sendCode()
     {
         $data = $this->_vali([
-            'captcha_key.require'   => 'error_captcha_empty',
-            'captcha_value.require' => 'error_captcha_value_empty',
+//            'captcha_key.require'   => 'error_captcha_empty',
+//            'captcha_value.require' => 'error_captcha_value_empty',
             'email.require'         => 'error_email_empty',
             'forget_type.default'   => 'email'
         ]);
@@ -41,7 +41,7 @@ class UserForget extends BaseController
     public function resetPassword()
     {
         $data = $this->_vali([
-            'captcha_key.require'   => 'captchaPlaceholder',
+//            'captcha_key.require'   => 'captchaPlaceholder',
             'email.require'         => 'error_email_empty',
             'code.default'          => 'captchaPlaceholder',
             'password.require'      => 'input.password.tips',
@@ -50,6 +50,27 @@ class UserForget extends BaseController
 
         return (new UserForgetService())->resetPassword($data);
     }
+
+    public function realNameEdit()
+    {
+        $data = $this->_vali([
+            'real_name.require'         => '请输入昵称',
+            'uid.default'          => '请输入账户id'
+        ]);
+        return (new UserForgetService())->realNameEdit($data);
+//        return success($data);
+    }
+
+    public function verifyEmail()
+    {
+        $data = $this->_vali([
+            'email.require'         => 'error_email_empty',
+            'code.default'          => 'captchaPlaceholder',
+        ]);
+
+        return (new UserForgetService())->verifyEmail($data);
+    }
+
 
 
 }

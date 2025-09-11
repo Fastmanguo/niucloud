@@ -45,6 +45,7 @@ class UserService extends BaseAdminService
                 'douyin_openid' => '',
                 'google_openid' => '',
                 'email'         => '',
+                'mobile'        => '',
             ]);
         }
 

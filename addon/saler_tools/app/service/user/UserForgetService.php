@@ -46,15 +46,15 @@ class UserForgetService extends BaseService
     public function sendCode($data)
     {
         // 检查图像验证码
-        $captcha_key   = $data['captcha_key'];
-        $captcha_value = $data['captcha_value'];
+//        $captcha_key   = $data['captcha_key'];
+//        $captcha_value = $data['captcha_value'];
 
-        $captcha_data = Cache::get('captcha:' . $captcha_key);
+//        $captcha_data = Cache::get('captcha:' . $captcha_key);
 
-        if (empty($captcha_data) || $captcha_data['code'] != $captcha_value) return fail('captcha_error');
+//        if (empty($captcha_data) || $captcha_data['code'] != $captcha_value) return fail('captcha_error');
 
-        // 图像验证码只能使用一次
-        Cache::delete('captcha:' . $captcha_key);
+//        // 图像验证码只能使用一次
+//        Cache::delete('captcha:' . $captcha_key);
 
         // 验证账户是否存在
         $auth = (new UserOauth())->where('email', $data['email'])->findOrEmpty();
@@ -78,7 +78,13 @@ class UserForgetService extends BaseService
             'code'             => Str::random(type: 1)
         ]);
     }
-
+    public function verifyEmail($data)
+    {
+        $email    = $data['email'];
+        $code     = $data['code'];
+        (new CaptchaService())->verify($email, 'FORGET', $code, 'email');
+        return success();
+    }
 
     public function resetPassword($data)
     {
@@ -88,12 +94,12 @@ class UserForgetService extends BaseService
 
 
         if($data['forget_type'] == "1"){
-            $auth = (new UserOauth())->where('mobile', $data['email'])->findOrEmpty();
-            if ($auth->isEmpty()) return fail('error_iphone_not_exist');
+            $auth = (new UserOauth())->where('email', $data['email'])->findOrEmpty();
+            if ($auth->isEmpty()) return fail('手机号不存在');
         }else{
             (new CaptchaService())->verify($email, 'FORGET', $code, 'email');
             $auth = (new UserOauth())->where('email', $data['email'])->findOrEmpty();
-            if ($auth->isEmpty()) return fail('error_email_not_exist');
+            if ($auth->isEmpty()) return fail('邮箱不存在');
         }
 
         SysUser::update(
@@ -101,6 +107,18 @@ class UserForgetService extends BaseService
                 'password' => create_password($password)
             ],
             ['uid' => $auth->uid]);
+
+        return success();
+    }
+
+    public function realNameEdit($data)
+    {
+        $uid = $data['uid'];
+        SysUser::update(
+            [
+                'real_name' => $data['real_name']
+            ],
+            ['uid' =>$uid]);
 
         return success();
     }

@@ -270,6 +270,10 @@ class UserService extends BaseAdminService
         return $this->model->where([['username', '=',$username], ['is_del', '=', 0]])->findOrEmpty();
     }
 
+    public function getUserInfoByUid(string $uid){
+        return $this->model->where([['uid', '=',$uid], ['is_del', '=', 0]])->findOrEmpty();
+    }
+
     /**
      * 获取全部用户列表（用于平台整体用户管理）
      * @param array $where

@@ -746,7 +746,17 @@ class DiyService extends BaseAdminService
 
     }
 
-
+    public function getImages()
+    {
+        $field = 'id,site_id,title,page_title,name,template,type,mode,value,is_default,is_change,share,visit_count';
+        $diy = $this->model->field($field)
+            ->where('site_id', 0)
+            ->where('lang', 'zh-Hans')
+            ->where('name', 'APP_HOME')
+            ->findOrEmpty()
+            ->toArray();
+        return $diy;
+    }
     public function getDiy($params)
     {
         $key = app()->appCache->page_key . serialize($params);

@@ -24,6 +24,7 @@ class Login extends BaseAdminController
     /**
      * 登录
      * @return Response
+     * login_type 1手机密码登录 2邮箱密码登录   3:手机验证码登录 4邮箱验证码登录
      */
     public function login($app_type)
     {
@@ -31,14 +32,14 @@ class Login extends BaseAdminController
         $data = $this->request->params([
             [ 'username', '' ],
             [ 'password', '' ],
-            [ 'login_type', '1' ],
+            [ 'login_type', '0' ],
         ]);
         
-
-        if($data['login_type'] == "3"){
-            $result = ( new LoginService() )->login($data[ 'username' ], "0-01", $app_type);
+        $login_type = strval($data['login_type']);
+        if($login_type== "3" or $login_type == "4"){
+            $result = ( new LoginService() )->login($data[ 'username' ], "0-01", $app_type,$login_type);
         }else{
-            $result = ( new LoginService() )->login($data[ 'username' ], $data[ 'password' ], $app_type);
+            $result = ( new LoginService() )->login($data[ 'username' ], $data[ 'password' ], $app_type,$login_type);
         }
         if (!$result) {
             //账号密码错误...., 重置验证码

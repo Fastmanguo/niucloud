@@ -24,4 +24,19 @@ class UserOauth extends BaseModel
 
     protected $autoWriteTimestamp = false;
 
+    // 定义可填充字段
+    protected $field = [
+        'uid',
+        'invitation_uid', 
+        'invitation_code',
+        'email',
+        'mobile',
+        'wx_openid',
+        'weapp_openid',
+        'wx_unionid',
+        'ali_openid',
+        'douyin_openid',
+        'google_openid'
+    ];
+
 }

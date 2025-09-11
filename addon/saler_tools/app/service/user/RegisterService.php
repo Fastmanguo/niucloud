@@ -78,15 +78,17 @@ class RegisterService extends BaseAdminService
         $user_oauth_model = new UserOauth();
 
         // 校验重复
-        $user = $user_model->where('username', $email)->findOrEmpty();
+//        $user = $user_model->where('username', $email)->findOrEmpty();
         // 邮箱已注册过了
-        if (!$user->isEmpty()) return fail('当前账户已注册');
-        if($data['login_type']=="2"){
+//        if (!$user->isEmpty()) return fail('当前账户已注册');
+        if(strval($data['login_type'])=="2"){
             $user_oauth = $user_oauth_model->where('email', $email)->findOrEmpty();
+            if (!$user_oauth->isEmpty()) return fail('当前邮箱账户已注册');
         }else{
             $user_oauth = $user_oauth_model->where('mobile', $email)->findOrEmpty();
+            if (!$user_oauth->isEmpty()) return fail('当前手机账户已注册');
         }
-        if (!$user_oauth->isEmpty()) return fail('当前账户已注册');
+
 
         $user_model->startTrans();
         try {
@@ -112,16 +114,24 @@ class RegisterService extends BaseAdminService
                 'delete_time' => 0
             ]);
 
+            if(strval($data['login_type'])=="2"){
+                $user_oauth_model->create([
+                    'uid'             => $user->uid,
+                    'invitation_uid'  => $invitation_uid,
+                    'invitation_code' => '',
+                    'email'           => $data['email'],
+                ]);
+            }else{
+                $user_oauth_model->create([
+                    'uid'             => $user->uid,
+                    'invitation_uid'  => $invitation_uid,
+                    'invitation_code' => '',
+                    'mobile'           => $data['email'],
+                ]);
+            }
 
-            $user_oauth_model->create([
-                'uid'             => $user->uid,
-                'invitation_uid'  => $invitation_uid,
-                'invitation_code' => '',
-                'email'           => $data['email'],
-            ]);
 
             $user_model->commit();
-
             return success();
 
         } catch (\Exception $e) {

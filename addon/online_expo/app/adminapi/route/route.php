@@ -23,6 +23,7 @@ Route::group('online_expo', function () {
     Route::group('goods', function () {
         Route::get('lists', 'addon\online_expo\app\adminapi\controller\Goods@lists');
         Route::get('detail/:goods_id', 'addon\online_expo\app\adminapi\controller\Goods@detail');
+        Route::post('detail_edit_money', 'addon\online_expo\app\adminapi\controller\Goods@detailEditMoney');
     });
 
     Route::group('goods_enquiry', function () {
@@ -47,7 +48,8 @@ Route::group('online_expo', function () {
     // 浏览记录
     Route::get('record/lists', 'addon\online_expo\app\adminapi\controller\Record@lists');
 
-})->middleware([
-    AdminCheckToken::class,
-    AdminCheckRole::class,
-]);
+// })->middleware([
+//     AdminCheckToken::class,
+//     AdminCheckRole::class,
+// ]);
+});

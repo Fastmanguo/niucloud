@@ -68,6 +68,41 @@ class GoodsService extends BaseAdminService
         return success($result);
     }
 
+    public function detailEditMoney($data)
+    {
+        $goods_id = $data['goods_id'];
+        
+        // 验证商品是否存在
+        $model = new GoodsModel();
+        // $goods = $model->where('goods_id', $goods_id)
+        //     ->where('is_online_expo', 1)
+        //     ->findOrEmpty();
+            
+        // if ($goods->isEmpty()) {
+        //     return fail('商品不存在或未上线展会');
+        // }
+        
+        // 更新商品价格信息
+        $updateData = [
+            'price' => $data['price'],
+            'peer_price' => $data['peer_price'],
+            'total_cost' => $data['total_cost'],
+            'update_time' => date('Y-m-d H:i:s')
+        ];
+        
+        try {
+            $result = $model->where('goods_id', $goods_id)->update($updateData);
+            
+            if ($result) {
+                return success('商品价格更新成功');
+            } else {
+                return fail('商品价格更新失败');
+            }
+        } catch (\Exception $e) {
+            Log::error('商品价格更新失败: ' . $e->getMessage());
+            return fail('商品价格更新失败: ' . $e->getMessage());
+        }
+    }
 
     public function detail($goods_id)
     {
