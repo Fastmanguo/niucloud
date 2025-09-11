@@ -134,6 +134,44 @@ class LoginService extends BaseAdminService
             if ($user_oauth->is_email_login != 1) return ['msg'=>'当前邮箱未开启登录'];
             $user_service = new UserService();
             $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+        }elseif ($login_type == "5"){
+            $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
+            if ($user_oauth->isEmpty()){
+                try {
+
+                    $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
+                    if (!$user_oauth->isEmpty()) return fail('当前手机账户已注册');
+                    $user_model       = new SysUser();
+                    $user = $user_model->create([
+                        'username'    => $username,
+                        'real_name'   => "",
+                        'head_img'    => '',
+                        'password'    => "",
+                        'last_ip'     => $this->request->ip(),
+                        'last_time'   => time(),
+                        'create_time' => time(),
+                        'login_count' => 0,
+                        'status'      => 1,
+                        'is_del'      => 0,
+                        'delete_time' => 0
+                    ]);
+
+                    $user_oauth_model->create([
+                        'uid'             => $user->uid,
+                        'invitation_uid'  => 0,
+                        'invitation_code' => '',
+                        'mobile'           => $username,
+                    ]);
+                    $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
+                    if ($user_oauth->isEmpty())  ['msg'=>'当前手机号未注册'];
+                    $user_service = new UserService();
+                    $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+                }catch (\Exception $e) {
+                    return fail("一键登录失败");
+                }
+            }
+            $user_service = new UserService();
+            $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
         }
 
 
