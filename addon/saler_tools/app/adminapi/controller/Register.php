@@ -38,6 +38,18 @@ class Register extends BaseAdminController
         return app(RegisterService::class)->sendCaptcha($data);
     }
 
+    /**
+     * @return \think\Response
+     * @throws \Exception
+     * 一键登录 手机号未注册的话进行隐秘注册接口
+     */
+    public function mobileRegister()
+    {
+        $data = $this->_vali([
+            'mobile.require'           => '请输入正确手机号',
+        ]);
+        return app(RegisterService::class)->mobileRegister($data);
+    }
     public function index()
     {
         $data = $this->_vali([

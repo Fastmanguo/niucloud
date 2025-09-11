@@ -64,7 +64,43 @@ class RegisterService extends BaseAdminService
         ]);
     }
 
+    public function mobileRegister($data)
+    {
+        $user_model       = new SysUser();
+        $user_oauth_model = new UserOauth();
+        try {
 
+            $user_oauth = $user_oauth_model->where('mobile', $data['mobile'])->findOrEmpty();
+            if (!$user_oauth->isEmpty()) return fail('当前手机账户已注册');
+
+            $user = $user_model->create([
+                'username'    => $data['mobile'],
+                'real_name'   => "",
+                'head_img'    => '',
+                'password'    => "",
+                'last_ip'     => $this->request->ip(),
+                'last_time'   => time(),
+                'create_time' => time(),
+                'login_count' => 0,
+                'status'      => 1,
+                'is_del'      => 0,
+                'delete_time' => 0
+            ]);
+
+            $user_oauth_model->create([
+                'uid'             => $user->uid,
+                'invitation_uid'  => 0,
+                'invitation_code' => '',
+                'mobile'           => $data['mobile'],
+            ]);
+            return success();
+        }catch (\Exception $e) {
+            return fail("一键登录失败");
+        }
+
+
+
+    }
     public function index($data)
     {
         $email = $data['email'];

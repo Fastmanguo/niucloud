@@ -82,7 +82,9 @@ class UserForgetService extends BaseService
     {
         $email    = $data['email'];
         $code     = $data['code'];
-        (new CaptchaService())->verify($email, 'FORGET', $code, 'email');
+        (new CaptchaService())->verify($email, 'REGISTER', $code, 'email');
+//        $captcha_service = new CaptchaService();
+//        $captcha_service->verify($email, 'REGISTER', $data['code'], 'email');
         return success();
     }
 
@@ -94,7 +96,7 @@ class UserForgetService extends BaseService
 
 
         if($data['forget_type'] == "1"){
-            $auth = (new UserOauth())->where('email', $data['email'])->findOrEmpty();
+            $auth = (new UserOauth())->where('mobile', $data['email'])->findOrEmpty();
             if ($auth->isEmpty()) return fail('手机号不存在');
         }else{
             (new CaptchaService())->verify($email, 'FORGET', $code, 'email');

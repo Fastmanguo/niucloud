@@ -22,6 +22,9 @@ Route::group(function() {
     //登录注册设置
     Route::get('login/config', 'login.Config/getConfig');
 
+    //微信登录
+    Route::post('loginWchat', 'login.Login/loginWchat');
+
     //生成验证码
     Route::get('captcha/create', 'login.Captcha/create');
     //一次校验验证码

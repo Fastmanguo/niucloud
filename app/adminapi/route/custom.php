@@ -76,6 +76,7 @@ Route::group('saler_tools/sys', function () {
  */
 Route::group('saler_tools/register', function () {
     Route::post('index', 'addon\saler_tools\app\adminapi\controller\Register@index');
+    Route::post('mobile_register', 'addon\saler_tools\app\adminapi\controller\Register@mobileRegister');
     Route::put('send_captcha', 'addon\saler_tools\app\adminapi\controller\Register@sendCaptcha');
     Route::post('login', 'addon\saler_tools\app\adminapi\controller\Register@login');
 });

@@ -41,6 +41,53 @@ class LoginService extends BaseAdminService
         $this->model = new SysUser();
     }
 
+
+    public function loginWchat($app_id,$app_secret,$code)
+    {
+        $request_data = array(
+            'appid' => $app_id,
+            'secret' => $app_secret,
+            'code' => $code,
+            'grant_type' => 'authorization_code'
+        );
+//        return $request_data;
+        $url = "https://api.weixin.qq.com/sns/oauth2/access_token" . '?' . http_build_query($request_data);
+        $response = $this->httpGet($url);
+        if ($response) {
+            $data = json_decode($response, true);
+            if (isset($data['access_token'])) {
+                return $data;
+            } else {
+                return fail('获取访问令牌失败');
+            }
+        }
+        return fail('数据请求失败');;
+    }
+
+    /**
+     * 发送HTTP GET请求
+     * @param string $url 请求URL
+     * @return string|false 返回响应内容或false
+     */
+    private function httpGet($url) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode == 200) {
+            return $response;
+        } else {
+            $this->logError("HTTP请求失败，状态码: $httpCode");
+            return false;
+        }
+    }
     /**
      * 用户登录
      * @param string $username
@@ -74,17 +121,17 @@ class LoginService extends BaseAdminService
             $user_service = new UserService();
             $userinfo = $user_service->getUserInfoByUsername($username);
             if ($userinfo->isEmpty()) return false;
-        }elseif ($login_type == "1"){
+        }elseif ($login_type == "1" or $login_type == "3"){
             #手机号 密码 登录
             $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
-            if ($user_oauth->isEmpty()) return '当前手机号未注册';
+            if ($user_oauth->isEmpty())  ['msg'=>'当前手机号未注册'];
             $user_service = new UserService();
             $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
-        }elseif ($login_type == "2"){
+        }elseif ($login_type == "2" or $login_type == "4"){
             #邮箱 密码 登录
             $user_oauth = $user_oauth_model->where('email', $username)->findOrEmpty();
-            if ($user_oauth->isEmpty()) return '当前邮箱号未注册';
-            if ($user_oauth->is_email_login != 1) return fail('当前邮箱未开启登录');
+            if ($user_oauth->isEmpty()) ['msg'=>'当前邮箱号未注册'];
+            if ($user_oauth->is_email_login != 1) return ['msg'=>'当前邮箱未开启登录'];
             $user_service = new UserService();
             $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
         }
