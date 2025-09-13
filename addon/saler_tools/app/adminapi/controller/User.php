@@ -95,7 +95,7 @@ class User extends BaseAdminController
         $file = $this->request->file('file');
         $data = $this->_vali([
             'file.require'                                            => 'file_require',
-            'file.fileMime:image/jpeg,image/png,image/gif,image/webp' => 'image_type_error',
+            // 'file.fileMime:image/jpeg,image/png,image/gif,image/webp' => 'image_type_error',
             'file.fileSize:2024000'                                   => 'error'
         ], data: ['file' => $file]);
 

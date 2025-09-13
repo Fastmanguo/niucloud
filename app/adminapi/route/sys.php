@@ -99,8 +99,7 @@ Route::group('sys', function() {
     Route::put('config/themecolor', 'sys.Config/setThemeColor');
 
     /***************************************************** 图片上传 ****************************************************/
-    //附件图片上传
-    Route::post('image', 'upload.Upload/image');
+    
     //附件视频上传
     Route::post('video', 'upload.Upload/video');
     //附件上传
@@ -334,4 +333,6 @@ Route::group('sys', function() {
     Route::get('web/copyright', 'sys.Config/getCopyright');
     // 查询布局设置
     Route::get('web/layout', 'sys.Config/getLayout');
+    //附件图片上传
+    Route::post('image', 'upload.Upload/image');
 });

@@ -138,8 +138,8 @@ class RegisterService extends BaseAdminService
 
             $user = $user_model->create([
                 'username'    => $data['email'],
-                'real_name'   => $data['real_name'] ?? '',
-                'head_img'    => '',
+                'real_name'   => $data['real_name'] ?? $data['email'],
+                'head_img'    => 'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
                 'password'    => create_password($data['password']),
                 'last_ip'     => $this->request->ip(),
                 'last_time'   => time(),

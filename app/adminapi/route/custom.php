@@ -32,6 +32,12 @@ Route::group('saler_tools', function () {
         Route::put('cancel', 'addon\saler_tools\app\adminapi\controller\User@cancel');
 
     });
+    
+    Route::group('saler_tools/user', function () {
+        // 更新头像
+            Route::post('head_img', 'addon\saler_tools\app\adminapi\controller\User@updateHeadImg');
+        
+    });
 
     // 用户获取店铺列表
     Route::get('shop/list', 'addon\saler_tools\app\adminapi\controller\Shop@list');

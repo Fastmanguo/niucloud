@@ -50,18 +50,85 @@ class LoginService extends BaseAdminService
             'code' => $code,
             'grant_type' => 'authorization_code'
         );
-//        return $request_data;
         $url = "https://api.weixin.qq.com/sns/oauth2/access_token" . '?' . http_build_query($request_data);
         $response = $this->httpGet($url);
         if ($response) {
             $data = json_decode($response, true);
+            return $data;
             if (isset($data['access_token'])) {
-                return $data;
+                $access_token = $data['access_token'];
+                $openid = $data['openid'];
+                $userInfo = $this->getUserInfo($access_token,$openid);
+                $mobile = $this->getMobile($app_id,$app_secret,$code);
+                return [$access_token,$openid,$userInfo,$mobile];
             } else {
-                return fail('获取访问令牌失败');
+                return "获取访问令牌失败";
             }
         }
-        return fail('数据请求失败');;
+    }
+
+    /**
+     * @param $accessToken
+     * @param $openId
+     * @return false|mixed|\think\Response
+     * 根据token  openid 获取用户信息
+     */
+    public function getUserInfo($accessToken, $openId) {
+        $params = array(
+            'access_token' => $accessToken,
+            'openid' => $openId
+        );
+
+        $url = "https://api.weixin.qq.com/sns/userinfo" . '?' . http_build_query($params);
+        $response = $this->httpGet($url);
+
+        if ($response) {
+            $data = json_decode($response, true);
+            if (isset($data['openid'])) {
+                return $data;
+            } else {
+                return '获取用户信息失败'.$response;;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param $app_id
+     * @param $app_secret
+     * @return void
+     * 获取手机号
+     */
+    public function getMobile($app_id,$app_secret,$code)
+    {
+        #获取手机号所需的token
+        $request_data = array(
+            'appid' => $app_id,
+            'secret' => $app_secret,
+            'grant_type' => 'client_credential'
+        );
+        $url = "https://api.weixin.qq.com/cgi-bin/token" . '?' . http_build_query($request_data);
+        $response = $this->httpGet($url);
+        if($response){
+            $data = json_decode($response, true);
+            if (isset($data['access_token'])) {
+                $access_token = $data['access_token'];
+                $request_mobile_data = array(
+                    'access_token' => $access_token,
+                    'code' => $code
+                );
+                $mobile_url = "https://api.weixin.qq.com/wxa/business/getuserphonenumber" . '?' . http_build_query($request_mobile_data);
+                $response_mobile = $this->httpGet($mobile_url);
+                if ($response_mobile) {
+                    $data_mobile = json_decode($response_mobile, true);
+                    return $data_mobile;
+                    return $data_mobile['phone_info']['phoneNumber'];
+                }
+            } else {
+                return "获取手机号所需token失败";
+            }
+        }
     }
 
     /**
@@ -88,6 +155,7 @@ class LoginService extends BaseAdminService
             return false;
         }
     }
+
     /**
      * 用户登录
      * @param string $username
@@ -95,7 +163,7 @@ class LoginService extends BaseAdminService
      * @param string $app_type
      * @return array|bool
      */
-    public function login(string $username, string $password, string $app_type,$login_type="0")
+    public function login(string $username, string $password, string $app_type,$login_type="0",$data)
     {
         if(!array_key_exists($app_type, AppTypeDict::getAppType())) throw new AuthException('APP_TYPE_NOT_EXIST');
 
@@ -138,14 +206,13 @@ class LoginService extends BaseAdminService
             $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
             if ($user_oauth->isEmpty()){
                 try {
-
                     $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
-                    if (!$user_oauth->isEmpty()) return fail('当前手机账户已注册');
+                    if (!$user_oauth->isEmpty()) return ['msg'=>'当前手机账户已注册'];
                     $user_model       = new SysUser();
                     $user = $user_model->create([
                         'username'    => $username,
-                        'real_name'   => "",
-                        'head_img'    => '',
+                        'real_name'   => $username,
+                        'head_img'    => 'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
                         'password'    => "",
                         'last_ip'     => $this->request->ip(),
                         'last_time'   => time(),
@@ -166,19 +233,56 @@ class LoginService extends BaseAdminService
                     if ($user_oauth->isEmpty())  ['msg'=>'当前手机号未注册'];
                     $user_service = new UserService();
                     $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+
                 }catch (\Exception $e) {
-                    return fail("一键登录失败");
+                    return  ['msg'=>'一键登录失败'.$e];
                 }
             }
             $user_service = new UserService();
             $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+        }elseif ($login_type == "6"){
+            $user_oauth = $user_oauth_model->where('wx_openid', $data['wx_openid'])->findOrEmpty();
+            if ($user_oauth->isEmpty()){
+                try {
+                    $user_model       = new SysUser();
+                    $user = $user_model->create([
+                        'username'    => $data['wx_openid'],
+                        'real_name'   => $data['real_name'],
+                        'head_img'    => $data['wx_image'] ??'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                        'password'    => "",
+                        'last_ip'     => $this->request->ip(),
+                        'last_time'   => time(),
+                        'create_time' => time(),
+                        'login_count' => 0,
+                        'status'      => 1,
+                        'is_del'      => 0,
+                        'delete_time' => 0
+                    ]);
+
+                    $user_oauth_model->create([
+                        'uid'             => $user->uid,
+                        'invitation_uid'  => 0,
+                        'invitation_code' => '',
+                        'wx_openid'           => $data['wx_openid'],
+                    ]);
+                    $user_oauth = $user_oauth_model->where('wx_openid', $data['wx_openid'])->findOrEmpty();
+                    $user_service = new UserService();
+                    $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+                }catch (\Exception $e) {
+                    return  ['msg'=>'微信一键登录失败'.$e];
+                }
+
+            }else{
+                $user_service = new UserService();
+                $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+            }
         }
 
 
 
 
         if($password != "0-01"){
-            if (!check_password($password, $userinfo->password)) return false;
+            if (!check_password($password, $userinfo->password)) return ['msg'=>'密码错误'];
         }
 
         $this->request->uid($userinfo->uid);
