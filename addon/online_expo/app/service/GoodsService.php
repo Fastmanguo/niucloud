@@ -84,9 +84,10 @@ class GoodsService extends BaseAdminService
         
         // 更新商品价格信息
         $updateData = [
-            'price' => $data['price'],
-            'peer_price' => $data['peer_price'],
-            'total_cost' => $data['total_cost'],
+            'price' => intval($data['price']),
+            'peer_price' => intval($data['peer_price']),
+            'total_cost' => intval($data['total_cost']),
+            'stock' => intval($data['stock']),
             'update_time' => date('Y-m-d H:i:s')
         ];
         

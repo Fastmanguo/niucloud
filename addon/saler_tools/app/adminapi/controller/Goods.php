@@ -63,6 +63,21 @@ class Goods extends BaseAdminController
     }
 
 
+    /**
+     * @param $goods_id
+     * @return \think\Response
+     * 计算商品总价值
+     */
+    public function goodsTypePrice()
+    {
+        $data = $this->request->params([
+            ['site_id',""],
+            ['create_uid',""],
+        ]);
+        return app(GoodsService::class)->goodsTypePrice($data['site_id'],$data['create_uid']);
+    }
+
+
     public function detail($goods_id)
     {
         return app(GoodsService::class)->detail($goods_id);

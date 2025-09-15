@@ -64,6 +64,7 @@ class Goods extends BaseAdminController
             'price.require' => '请输入商品销售价格',
             'peer_price.require' => '请输入商品同行价格',
             'total_cost.require' => '请输入商品成本价格',
+            'stock.require' => '请输入数量',
 
         ]);
         return app(GoodsService::class)->detailEditMoney($data);
