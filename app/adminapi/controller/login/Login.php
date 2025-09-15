@@ -41,7 +41,7 @@ class Login extends BaseAdminController
     /**
      * 登录
      * @return Response
-     * login_type 1手机密码登录 2邮箱密码登录   3:手机验证码登录 4邮箱验证码登录 5 一键登录，不存在自动注册  6微信一键登录，不存在自动注册
+     * login_type 1手机密码登录 2邮箱密码登录   3:手机验证码登录 4邮箱验证码登录 5 一键登录，不存在自动注册  6微信一键登录，不存在自动注册 7支付宝一键登录，不存在自动注册
      */
     public function login($app_type)
     {
@@ -53,10 +53,13 @@ class Login extends BaseAdminController
             [ 'wx_openid', '0' ],
             [ 'real_name', '' ],
             [ 'wx_image', '' ],
+            [ 'user_id', '' ],
+            [ 'ail_image', '' ]
+
         ]);
         
         $login_type = strval($data['login_type']);
-        if($login_type== "3" or $login_type == "4" or $login_type == "5" or $login_type == "6"){
+        if($login_type== "3" or $login_type == "4" or $login_type == "5" or $login_type == "6" or $login_type == "7"){
             $result = ( new LoginService() )->login($data[ 'username' ], "0-01", $app_type,$login_type,$data);
         }else{
             $result = ( new LoginService() )->login($data[ 'username' ], $data[ 'password' ], $app_type,$login_type,$data);

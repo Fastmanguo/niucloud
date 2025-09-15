@@ -49,6 +49,24 @@ class OrderService extends BaseAdminService
         parent::__construct();
     }
 
+    public function goodsOrderCount($site_id,$uid)
+    {
+        $order_model = new OrderModel();
+        // 基础查询条件
+        $where = [['site_id', '=', $site_id],['create_uid', '=', $uid]];
+        // 统计总条数
+        $total_count = $order_model->where($where)->count();
+        $shipment = $order_model->where($where)->where('order_status', 'ADD_ORDER')->count();
+        $cancel = $order_model->where($where)->where('order_status', 'CANCEL_ORDER')->count();
+        $result = [
+            'count' => $total_count+$shipment+$cancel,
+            'total_count' => $total_count,
+            'shipment_count' => $shipment,
+            'cancel_count' => $cancel
+        ];
+        return success($result);
+    }
+
     public function lists($params, $order = [])
     {
         $order_model = new OrderModel();

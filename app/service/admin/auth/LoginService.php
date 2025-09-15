@@ -276,6 +276,42 @@ class LoginService extends BaseAdminService
                 $user_service = new UserService();
                 $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
             }
+        }elseif ($login_type == "7") {
+            $user_oauth = $user_oauth_model->where('ali_openid', $data['user_id'])->findOrEmpty();
+            if ($user_oauth->isEmpty()) {
+                try {
+                    $user_model = new SysUser();
+                    $user = $user_model->create([
+                        'username' => $data['user_id'],
+                        'real_name' => $data['real_name'],
+                        'head_img' => $data['ail_image'] ?? 'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                        'password' => "",
+                        'last_ip' => $this->request->ip(),
+                        'last_time' => time(),
+                        'create_time' => time(),
+                        'login_count' => 0,
+                        'status' => 1,
+                        'is_del' => 0,
+                        'delete_time' => 0
+                    ]);
+
+                    $user_oauth_model->create([
+                        'uid' => $user->uid,
+                        'invitation_uid' => 0,
+                        'invitation_code' => '',
+                        'ali_openid' => $data['user_id'],
+                    ]);
+                    $user_oauth = $user_oauth_model->where('ali_openid', $data['user_id'])->findOrEmpty();
+                    $user_service = new UserService();
+                    $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+                } catch (\Exception $e) {
+                    return ['msg' => '微信一键登录失败' . $e];
+                }
+
+            } else {
+                $user_service = new UserService();
+                $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+            }
         }
 
 

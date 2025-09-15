@@ -19,6 +19,19 @@ use addon\saler_tools\app\service\order\OrderService;
 class Order extends BaseAdminController
 {
 
+    /**
+     * @return \think\Response
+     * 我的订单 发货-待发货统计
+     */
+    public function goodsOrderCount()
+    {
+        $data = $this->request->params([
+            ['site_id',""],
+            ['create_uid',""],
+        ]);
+        return app(OrderService::class)->goodsOrderCount($data['site_id'],$data['create_uid']);
+    }
+
 
     public function lists()
     {

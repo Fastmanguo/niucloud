@@ -99,7 +99,43 @@ class GoodsService extends BaseAdminService
 
     }
 
+    /**
+     * @param $goods_attribute
+     * @return \think\Response
+     * 仓库各类商品数量统计
+     */
+    public function goodsWarehouseCount($goods_attribute,$site_id,$uid){
+        $model = new GoodsModel();
+        
+        // 基础查询条件
+        $where = [['site_id', '=', $site_id],['create_uid', '=', $uid]];
 
+        // 如果传入了goods_attribute参数，则添加查询条件
+        if (!empty($goods_attribute)) {
+            $where = [['site_id', '=', $site_id],['create_uid', '=', $uid],['goods_attribute', '=', $goods_attribute]];
+        }
+        
+        // 统计总条数
+        $total_count = $model->where($where)->count();
+        // 统计category_id = 1的数量
+        $category_1_count = $model->where($where)->where('category_id', 1)->count();
+        
+        // 统计category_id = 18的数量
+        $category_18_count = $model->where($where)->where('category_id', 18)->count();
+        
+        // 统计category_id = 29的数量
+        $category_29_count = $model->where($where)->where('category_id', 29)->count();
+        
+        $result = [
+            'count' => $total_count+$category_1_count+$category_18_count+$category_29_count,
+            'total_count' => $total_count,
+            'category_1_count' => $category_1_count,
+            'category_18_count' => $category_18_count,
+            'category_29_count' => $category_29_count
+        ];
+        
+        return success($result);
+    }
     public function detail($goods_id)
     {
         $model = new GoodsModel();

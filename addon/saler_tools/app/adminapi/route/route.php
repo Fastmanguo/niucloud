@@ -458,3 +458,8 @@ Route::group('saler_tools', function () {
     AdminLog::class
 ]);
 
+Route::group('goods', function () {
+    Route::get('goods_warehouse_count', 'addon\saler_tools\app\adminapi\controller\Goods@goodsWarehouseCount');
+    Route::get('goods_order_count', 'addon\saler_tools\app\adminapi\controller\Order@goodsOrderCount');
+});
+

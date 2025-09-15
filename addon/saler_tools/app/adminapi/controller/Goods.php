@@ -48,6 +48,20 @@ class Goods extends BaseAdminController
         return app(GoodsService::class)->lists($data, $order);
     }
 
+    /**
+     * @param $goods_id
+     * @return \think\Response
+     * 仓库各类商品数量统计
+     */
+    public function goodsWarehouseCount(){
+        $data = $this->request->params([
+            ['goods_attribute',""],
+            ['site_id',""],
+            ['create_uid',""],
+        ]);
+        return app(GoodsService::class)->goodsWarehouseCount($data['goods_attribute'],$data['site_id'],$data['create_uid']);
+    }
+
 
     public function detail($goods_id)
     {
