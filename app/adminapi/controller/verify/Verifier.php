@@ -17,6 +17,7 @@ use core\base\BaseAdminController;
 use think\Response;
 
 class Verifier extends BaseAdminController
+
 {
     /**
      * 核销人员列表
