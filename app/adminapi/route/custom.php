@@ -96,6 +96,17 @@ Route::group('saler_tools/user_forget', function () {
     Route::post('real_name_edit', 'addon\saler_tools\app\adminapi\controller\UserForget@realNameEdit');
 });
 
+// 收货地址
+Route::group('saler_tools/user_address', function () {
+    Route::post('select_region', 'addon\saler_tools\app\adminapi\controller\UserAddress@selectRegion');
+    Route::post('add', 'addon\saler_tools\app\adminapi\controller\UserAddress@add');
+    Route::post('del', 'addon\saler_tools\app\adminapi\controller\UserAddress@del');
+    Route::post('find', 'addon\saler_tools\app\adminapi\controller\UserAddress@find');
+    Route::post('edit', 'addon\saler_tools\app\adminapi\controller\UserAddress@edit');
+    Route::post('list', 'addon\saler_tools\app\adminapi\controller\UserAddress@list');
+    
+});
+
 // 鉴定师
 Route::group('saler_tools/identify_user', function () {
 

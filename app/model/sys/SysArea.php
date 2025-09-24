@@ -33,5 +33,21 @@ class SysArea extends BaseModel
      */
     protected $name = 'sys_area';
 
+    /**
+     * 数据表字段信息
+     * @var array
+     */
+    protected $field = [
+        'id',
+        'pid',
+        'name',
+        'shortname',
+        'longitude',
+        'latitude',
+        'level',
+        'sort',
+        'sort_asc',
+        'status',
+    ];
 
 }

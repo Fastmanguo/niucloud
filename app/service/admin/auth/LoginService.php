@@ -192,13 +192,13 @@ class LoginService extends BaseAdminService
         }elseif ($login_type == "1" or $login_type == "3"){
             #手机号 密码 登录
             $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
-            if ($user_oauth->isEmpty())  ['msg'=>'当前手机号未注册'];
+            if ($user_oauth->isEmpty())  return ['msg'=>'当前手机号未注册'];
             $user_service = new UserService();
             $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
         }elseif ($login_type == "2" or $login_type == "4"){
             #邮箱 密码 登录
             $user_oauth = $user_oauth_model->where('email', $username)->findOrEmpty();
-            if ($user_oauth->isEmpty()) ['msg'=>'当前邮箱号未注册'];
+            if ($user_oauth->isEmpty()) return ['msg'=>'当前邮箱号未注册'];
             if ($user_oauth->is_email_login != 1) return ['msg'=>'当前邮箱未开启登录'];
             $user_service = new UserService();
             $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
@@ -230,7 +230,7 @@ class LoginService extends BaseAdminService
                         'mobile'           => $username,
                     ]);
                     $user_oauth = $user_oauth_model->where('mobile', $username)->findOrEmpty();
-                    if ($user_oauth->isEmpty())  ['msg'=>'当前手机号未注册'];
+                    if ($user_oauth->isEmpty()) return ['msg'=>'当前手机号未注册'];
                     $user_service = new UserService();
                     $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
 
@@ -312,6 +312,43 @@ class LoginService extends BaseAdminService
                 $user_service = new UserService();
                 $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
             }
+        }elseif($login_type == "8"){
+            $user_oauth = $user_oauth_model->where('google_openid', $data['google_openid'])->findOrEmpty();
+            if ($user_oauth->isEmpty()) {
+                try {
+                    $user_model = new SysUser();
+                    $user = $user_model->create([
+                        'username' => $data['google_openid'],
+                        'real_name' => $data['real_name'],
+                        'head_img' => $data['ail_image'] ?? 'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                        'password' => "",
+                        'last_ip' => $this->request->ip(),
+                        'last_time' => time(),
+                        'create_time' => time(),
+                        'login_count' => 0,
+                        'status' => 1,
+                        'is_del' => 0,
+                        'delete_time' => 0
+                    ]);
+
+                    $user_oauth_model->create([
+                        'uid' => $user->uid,
+                        'invitation_uid' => 0,
+                        'invitation_code' => '',
+                        'google_openid' => $data['google_openid'],
+                    ]);
+                    $user_oauth = $user_oauth_model->where('google_openid', $data['google_openid'])->findOrEmpty();
+                    $user_service = new UserService();
+                    $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+                } catch (\Exception $e) {
+                    return ['msg' => '苹果账户一键登录失败' . $e];
+                }
+
+            } else {
+                $user_service = new UserService();
+                $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
+            }
+            
         }
 
 
