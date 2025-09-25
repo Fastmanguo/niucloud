@@ -99,4 +99,36 @@ class UserAddress extends BaseController
         ]);
         return (new UserAddressService())->list($data['uid']);
     }
+
+    /**
+     * 识别文本
+     */
+    public function recognizeText(){
+        $data = $this->_vali([
+           'text.require'   => "请输入文本",
+        ]);
+        return (new UserAddressService())->recognizeText($data['text']);
+    }
+
+
+    /**
+     * 商品列表
+     */
+    public function goodsList(){
+        $data = $this->_vali([
+           'page.require'   => "请输入当前页",
+           'page_size.require'   => "请输入每页数量",
+           'category_id.default'   => "",
+           'brand_id.default'   => "",
+        ]);
+        return (new UserAddressService())->goodsList($data);
+    }
+
+    /**
+     * 品牌列表
+     */
+    public function brandList(){
+        return (new UserAddressService())->brandList();
+    }
+
 }

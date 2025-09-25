@@ -211,11 +211,43 @@ class UserAddressService extends BaseAdminService
                 ['id', '=', $id]
             ])->findOrEmpty();
             
+            // 如果没有找到数据，直接返回
+            if ($res->isEmpty()) {
+                return success([]);
+            }
+            
+            // 转换为数组
+            $addressData = $res->toArray();
+            
+            // 实例化地区模型
+            $areaModel = new SysArea();
+            
+            // 根据province_id获取省份名称
+            if (!empty($addressData['province_id'])) {
+                $province = $areaModel->where([
+                    ['id', '=', $addressData['province_id']]
+                ])->value('name');
+                $addressData['province_name'] = $province ?? '';
+            }
+            
+            // 根据city_id获取城市名称
+            if (!empty($addressData['city_id'])) {
+                $city = $areaModel->where([
+                    ['id', '=', $addressData['city_id']]
+                ])->value('name');
+                $addressData['city_name'] = $city ?? '';
+            }
+            
+            // 根据district_id获取区县名称
+            if (!empty($addressData['district_id'])) {
+                $district = $areaModel->where([
+                    ['id', '=', $addressData['district_id']]
+                ])->value('name');
+                $addressData['district_name'] = $district ?? '';
+            }
+            
             // 返回成功结果
-            return success([
-                'data' => $res->toArray(),
-                'message' => '地址查询成功'
-            ]);
+            return success($addressData);
             
         } catch (\Exception $e) {
             // 返回错误信息
@@ -274,16 +306,413 @@ class UserAddressService extends BaseAdminService
                 ['member_id', '=', $uid]
             ])->select();
             
+            // 转换为数组
+            $addressList = $res->toArray();
+            
+            // 如果地址列表为空，直接返回
+            if (empty($addressList)) {
+                return success([]);
+            }
+            
+            // 实例化地区模型
+            $areaModel = new SysArea();
+            
+            // 遍历地址列表，为每个地址添加省市区名称
+            foreach ($addressList as &$addressData) {
+                // 根据province_id获取省份名称
+                if (!empty($addressData['province_id'])) {
+                    $province = $areaModel->where([
+                        ['id', '=', $addressData['province_id']]
+                    ])->value('name');
+                    $addressData['province_name'] = $province ?? '';
+                }
+                
+                // 根据city_id获取城市名称
+                if (!empty($addressData['city_id'])) {
+                    $city = $areaModel->where([
+                        ['id', '=', $addressData['city_id']]
+                    ])->value('name');
+                    $addressData['city_name'] = $city ?? '';
+                }
+                
+                // 根据district_id获取区县名称
+                if (!empty($addressData['district_id'])) {
+                    $district = $areaModel->where([
+                        ['id', '=', $addressData['district_id']]
+                    ])->value('name');
+                    $addressData['district_name'] = $district ?? '';
+                }
+            }
+            
             // 返回成功结果
-            return success([
-                'data' => $res->toArray(),
-                'message' => '地址列表查询成功'
-            ]);
+            return success($addressList);
             
         } catch (\Exception $e) {
             // 返回错误信息
             return fail($e->getMessage());
         }
     }
+
+    /**
+     * 识别文本
+     */
+    public function recognizeText($input){
+
+        $result = [
+            'name' => '',
+            'phone' => '',
+            'region' => '',
+            'province_name' => '',
+            'city_name' => '',
+            'district_name' => '',
+            'detail_address' => '',
+            'province_id' => 0,
+            'city_id' => 0,
+            'district_id' => 0
+        ];
+
+        // 检测输入格式
+        if ($this->isLabeledFormat($input)) {
+            $result = $this->parseLabeledFormat($input);
+        } else {
+            $result = $this->parseCompactFormat($input);
+        }
+        
+        // 解析省市区县信息
+        if (!empty($result['region'])) {
+            $regionInfo = $this->parseRegion($result['region']);
+            $result['province_name'] = $regionInfo['province'];
+            $result['city_name'] = $regionInfo['city'];
+            $result['district_name'] = $regionInfo['district'];
+        }
+        
+        // 根据省市区名称查询对应的id
+        $areaModel = new SysArea();
+        
+        // 查询省份id
+        if (!empty($result['province_name'])) {
+            $provinceId = $areaModel->where([
+                ['name', '=', $result['province_name']]
+            ])->value('id');
+            $result['province_id'] = $provinceId ?? 0;
+        }
+        
+        // 查询城市id
+        if (!empty($result['city_name'])) {
+            $city_id = $areaModel->where([
+                ['name', '=', $result['city_name']]
+            ])->value('id');
+            $result['city_id'] = $city_id ?? 0;
+        }
+
+        // 查询区县id
+        if (!empty($result['district_name'])) {
+            $district_id = $areaModel->where([
+                ['name', '=', $result['district_name']]
+            ])->value('id');
+            $result['district_id'] = $district_id ?? 0;
+        }
+       
+        return success($result);
+
+    }
+    
+    /**
+     * 解析省市区县信息
+     * @param string $region
+     * @return array
+     */
+    private function parseRegion($region) {
+        $result = [
+            'province' => '',
+            'city' => '',
+            'district' => ''
+        ];
+        
+        // 常见的省份简称和全称
+        $provinces = [
+            '北京市', '上海市', '天津市', '重庆市',
+            '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省',
+            '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省', '湖北省', '湖南省', '广东省', '海南省', '四川省', '贵州省', '云南省', '陕西省', '甘肃省', '青海省', '台湾省',
+            '内蒙古自治区', '广西壮族自治区', '西藏自治区', '宁夏回族自治区', '新疆维吾尔自治区',
+            '香港特别行政区', '澳门特别行政区'
+        ];
+        
+        // 查找省份
+        foreach ($provinces as $province) {
+            if (strpos($region, $province) === 0) {
+                $result['province'] = $province;
+                $region = substr($region, strlen($province));
+                break;
+            }
+        }
+        
+        // 如果未找到省份，但region中包含'省'、'市'、'自治区'等关键字，尝试提取省份
+        if (empty($result['province'])) {
+            $provincePatterns = [
+                '/^(.*?省)/',
+                '/^(.*?市)(?=[^市]*区|县)/',  // 匹配直辖市如北京市、上海市
+                '/^(.*?自治区)/',
+                '/^(.*?特别行政区)/'
+            ];
+            
+            foreach ($provincePatterns as $pattern) {
+                if (preg_match($pattern, $region, $matches)) {
+                    $result['province'] = $matches[1];
+                    $region = substr($region, strlen($matches[1]));
+                    break;
+                }
+            }
+        }
+        
+        // 查找城市 - 优化正则表达式以确保正确分离城市
+        $cityPatterns = [
+            '/^(.*?市)(?!.*市)/',  // 匹配最后一个市字前的部分
+            '/^(.*?地区)/',
+            '/^(.*?自治州)/'
+        ];
+        
+        foreach ($cityPatterns as $pattern) {
+            if (preg_match($pattern, $region, $matches)) {
+                $result['city'] = $matches[1];
+                $region = substr($region, strlen($matches[1]));
+                break;
+            }
+        }
+        
+        // 如果城市未找到，尝试另一种方式提取
+        if (empty($result['city']) && !empty($region)) {
+            $cityKeywords = ['市', '地区', '自治州'];
+            foreach ($cityKeywords as $keyword) {
+                if (strpos($region, $keyword) !== false) {
+                    $cityEndPos = strpos($region, $keyword) + strlen($keyword);
+                    $result['city'] = substr($region, 0, $cityEndPos);
+                    $region = substr($region, $cityEndPos);
+                    break;
+                }
+            }
+        }
+        
+        // 查找区县 - 确保区县信息能正确提取
+        if (!empty($region)) {
+            $districtKeywords = ['区', '县', '旗', '市辖区', '自治县'];
+            foreach ($districtKeywords as $keyword) {
+                if (strpos($region, $keyword) !== false) {
+                    $districtEndPos = strpos($region, $keyword) + strlen($keyword);
+                    $result['district'] = substr($region, 0, $districtEndPos);
+                    break;
+                }
+            }
+        }
+        
+        // 最后的兜底方案，确保省市区县能够尽可能分离
+        if (empty($result['district']) && !empty($region)) {
+            $result['district'] = $region;
+        }
+        
+        return $result;
+    }
+
+
+    /**
+     * 品牌列表
+     */
+    public function brandList(){
+        try {
+            // 查询品牌列表的原生SQL
+            $sql = "SELECT * FROM saler_tools_goods_brand";
+            
+            // 执行SQL查询
+            $list = \think\facade\Db::query($sql);
+            
+            // 返回成功结果
+            return success($list);
+        } catch (\Exception $e) {
+            // 返回错误信息
+            return fail($e->getMessage());
+        }
+    }
+
+    /**
+     * 商品列表
+     */
+    public function goodsList($data){
+        try {
+            $brand_id = $data['brand_id'] ?? '';
+            $category_id = $data['category_id'] ?? '';
+            $page = $data['page'] ?? 1;
+            $page_size = $data['page_size'] ?? 10;
+            $offset = ($page - 1) * $page_size;
+            
+            // 构建WHERE条件
+            $where_conditions = ['deleted_time = 0'];
+            $count_params = [];
+            $list_params = [
+                'offset' => $offset,
+                'page_size' => $page_size
+            ];
+            
+            // 添加category_id条件
+            if($category_id){
+                $where_conditions[] = 'category_id = :category_id';
+                $count_params['category_id'] = $category_id;
+                $list_params['category_id'] = $category_id;
+            }
+            
+            // 添加brand_id条件
+            if($brand_id){
+                $where_conditions[] = 'brand_id = :brand_id';
+                $count_params['brand_id'] = $brand_id;
+                $list_params['brand_id'] = $brand_id;
+            }
+            
+            // 构建完整的WHERE子句
+            $where_clause = implode(' AND ', $where_conditions);
+            
+            // 计算总数的原生SQL
+            $count_sql = "SELECT COUNT(*) as total FROM saler_tools_goods WHERE {$where_clause}";
+            $list_sql = "SELECT * FROM saler_tools_goods WHERE {$where_clause} ORDER BY create_time DESC LIMIT :offset, :page_size";
+
+            $count_result = \think\facade\Db::query($count_sql, $count_params);
+            $total = $count_result[0]['total'] ?? 0;
+            
+            // 查询商品列表的原生SQL
+            $list = \think\facade\Db::query($list_sql, $list_params);
+
+            foreach ($list as $key => $value) {
+                $list[$key]['goods_image'] = json_decode($value['goods_image']);
+            }
+            
+            // 返回成功结果
+            return success([
+                'list' => $list,
+                'total' => $total,
+                'current_page' => $page,
+                'per_page' => $page_size,
+                'last_page' => ceil($total / $page_size)
+            ]);
+        } catch (\Exception $e) {
+            // 返回错误信息
+            return fail($e->getMessage());
+        }
+    }
+
+
+    /**
+     * 检测是否为带标签格式
+     * @param string $input
+     * @return bool
+     */
+    private function isLabeledFormat($input)
+    {
+        return strpos($input, '收件人:') !== false || 
+               strpos($input, '手机号码:') !== false || 
+               strpos($input, '所在地区:') !== false || 
+               strpos($input, '详细地址:') !== false;
+    }
+
+    /**
+     * 解析带标签格式
+     * @param string $input
+     * @return array
+     */
+    private function parseLabeledFormat($input)
+    {
+        $result = [
+            'name' => '',
+            'phone' => '',
+            'region' => '',
+            'detail_address' => ''
+        ];
+
+        // 按行分割
+        $lines = explode("\n", $input);
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            
+            if (strpos($line, '收件人:') === 0) {
+                $result['name'] = trim(substr($line, 4));
+            } elseif (strpos($line, '手机号码:') === 0) {
+                $result['phone'] = trim(substr($line, 5));
+            } elseif (strpos($line, '所在地区:') === 0) {
+                $result['region'] = trim(substr($line, 5));
+            } elseif (strpos($line, '详细地址:') === 0) {
+                $result['detail_address'] = trim(substr($line, 5));
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * 解析紧凑格式
+     * @param string $input
+     * @return array
+     */
+    private function parseCompactFormat($input)
+    {
+        $result = [
+            'name' => '',
+            'phone' => '',
+            'region' => '',
+            'detail_address' => ''
+        ];
+
+        // 提取手机号（11位数字）
+        if (preg_match('/1[3-9]\d{9}/', $input, $matches)) {
+            $result['phone'] = $matches[0];
+            $input = str_replace($matches[0], '', $input);
+        }
+
+        // 分割剩余部分
+        $parts = preg_split('/\s+/', trim($input));
+        
+        if (count($parts) >= 2) {
+            // 第一个部分通常是姓名
+            $result['name'] = $parts[0];
+            
+            // 剩余部分重新组合
+            $remaining = implode(' ', array_slice($parts, 1));
+            
+            // 尝试分离地区和详细地址
+            $this->separateRegionAndDetail($remaining, $result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * 分离地区和详细地址
+     * @param string $address
+     * @param array &$result
+     */
+    private function separateRegionAndDetail($address, &$result)
+    {
+        // 常见的地区关键词
+        $regionKeywords = [
+            '省', '市', '区', '县', '街道', '镇', '乡', '村',
+            '开发区', '新区', '高新区', '经济开发区'
+        ];
+
+        // 查找地区部分（通常包含省市区县等关键词）
+        $regionEndPos = 0;
+        foreach ($regionKeywords as $keyword) {
+            $pos = strrpos($address, $keyword);
+            if ($pos !== false && $pos > $regionEndPos) {
+                $regionEndPos = $pos + strlen($keyword);
+            }
+        }
+
+        if ($regionEndPos > 0) {
+            $result['region'] = trim(substr($address, 0, $regionEndPos));
+            $result['detail_address'] = trim(substr($address, $regionEndPos));
+        } else {
+            // 如果无法分离，将整个地址作为详细地址
+            $result['detail_address'] = $address;
+        }
+    }
+
+    
     
 }
