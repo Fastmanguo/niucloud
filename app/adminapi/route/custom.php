@@ -104,8 +104,17 @@ Route::group('saler_tools/user_address', function () {
     Route::post('find', 'addon\saler_tools\app\adminapi\controller\UserAddress@find');
     Route::post('edit', 'addon\saler_tools\app\adminapi\controller\UserAddress@edit');
     Route::post('list', 'addon\saler_tools\app\adminapi\controller\UserAddress@list');
+    Route::post('recognize_text', 'addon\saler_tools\app\adminapi\controller\UserAddress@recognizeText');
     
 });
+
+//登录后未注册的用户用到的接口
+Route::group('saler_tools/get_all_goods', function () {
+    Route::post('goods_list', 'addon\saler_tools\app\adminapi\controller\UserAddress@goodsList');
+    Route::post('brand_list', 'addon\saler_tools\app\adminapi\controller\UserAddress@brandList');
+});
+
+
 
 // 鉴定师
 Route::group('saler_tools/identify_user', function () {
