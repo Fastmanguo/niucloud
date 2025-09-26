@@ -234,7 +234,7 @@ class GoodsService extends BaseAdminService
         ];
 
         $cost_one = $goods['total_cost']/$goods['stock'];
-        $goods['cost_one'] = $cost_one;
+        $goods['cost_one'] = round($cost_one,2);
         $total_cost = [
             ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($cost_one,$currency_code,'CNY')],
             ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'USD')],
