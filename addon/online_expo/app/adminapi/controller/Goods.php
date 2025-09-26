@@ -39,7 +39,8 @@ class Goods extends BaseAdminController
             'country_code.query'  => '',
             'is_all.default'      => 0
         ]);
-
+        
+        $data['is_all'] = 1;
         $order = $this->_order(['create_time', 'peer_price'], ['update_time' => 'desc'], ['goods_id' => 'desc']);
 
         if ($data['query_type'] == 'goods') {

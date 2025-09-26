@@ -131,4 +131,14 @@ class UserAddress extends BaseController
         return (new UserAddressService())->brandList();
     }
 
+    /**
+     * 商品详情
+     */
+    public function goodsDetails(){
+        $data = $this->_vali([
+           'goods_id.require'   => "请输入商品id",
+        ]);
+        return (new UserAddressService())->goodsDetails($data['goods_id']);
+    }
+
 }

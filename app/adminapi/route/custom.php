@@ -112,6 +112,7 @@ Route::group('saler_tools/user_address', function () {
 Route::group('saler_tools/get_all_goods', function () {
     Route::post('goods_list', 'addon\saler_tools\app\adminapi\controller\UserAddress@goodsList');
     Route::post('brand_list', 'addon\saler_tools\app\adminapi\controller\UserAddress@brandList');
+    Route::post('goods_details', 'addon\saler_tools\app\adminapi\controller\UserAddress@goodsDetails');
 });
 
 

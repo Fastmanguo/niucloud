@@ -545,7 +545,7 @@ class UserAddressService extends BaseAdminService
             $offset = ($page - 1) * $page_size;
             
             // 构建WHERE条件
-            $where_conditions = ['deleted_time = 0'];
+            $where_conditions = ['deleted_time = 0', 'is_sale = 1'];
             $count_params = [];
             $list_params = [
                 'offset' => $offset,
@@ -591,6 +591,28 @@ class UserAddressService extends BaseAdminService
                 'per_page' => $page_size,
                 'last_page' => ceil($total / $page_size)
             ]);
+        } catch (\Exception $e) {
+            // 返回错误信息
+            return fail($e->getMessage());
+        }
+    }
+
+    /**
+     * 商品详情
+     */
+    public function goodsDetails($goods_id){
+        try {
+            // 查询商品详情的原生SQL
+            $sql = "SELECT * FROM saler_tools_goods WHERE goods_id = :goods_id";
+            
+            // 执行SQL查询
+            $result = \think\facade\Db::query($sql, ['goods_id' => $goods_id]);
+            
+            // 返回成功结果
+            foreach ($result as $key => $value) {
+                $result[$key]['goods_image'] = json_decode($value['goods_image']);
+            }
+            return success($result[0] ?? []);
         } catch (\Exception $e) {
             // 返回错误信息
             return fail($e->getMessage());
