@@ -106,7 +106,26 @@ Route::group('saler_tools/user_address', function () {
     Route::post('list', 'addon\saler_tools\app\adminapi\controller\UserAddress@list');
     Route::post('recognize_text', 'addon\saler_tools\app\adminapi\controller\UserAddress@recognizeText');
     
+}); 
+
+// 客户管理
+Route::group('saler_tools/customer', function () {
+    Route::post('payment_recognize_text', 'addon\saler_tools\app\adminapi\controller\Customer@paymentRecognizeText');
+    Route::post('add_payment', 'addon\saler_tools\app\adminapi\controller\Customer@addPayment');
+    Route::post('payment_list', 'addon\saler_tools\app\adminapi\controller\Customer@paymentList');
+    Route::post('payment_del', 'addon\saler_tools\app\adminapi\controller\Customer@paymentDel');
+    Route::post('payment_find', 'addon\saler_tools\app\adminapi\controller\Customer@paymentFind');
+    Route::post('payment_edit', 'addon\saler_tools\app\adminapi\controller\Customer@paymentEdit');
+    Route::post('address_recognize_text', 'addon\saler_tools\app\adminapi\controller\Customer@addressRecognizeText');
+    Route::post('receipt_add', 'addon\saler_tools\app\adminapi\controller\Customer@receiptAdd');
+    Route::post('receipt_list', 'addon\saler_tools\app\adminapi\controller\Customer@receiptList');
+    Route::post('receipt_del', 'addon\saler_tools\app\adminapi\controller\Customer@receiptDel');
+    Route::post('receipt_find', 'addon\saler_tools\app\adminapi\controller\Customer@receiptFind');
+    Route::post('receipt_edit', 'addon\saler_tools\app\adminapi\controller\Customer@receiptEdit');
+
 });
+
+
 
 //登录后未注册的用户用到的接口
 Route::group('saler_tools/get_all_goods', function () {
