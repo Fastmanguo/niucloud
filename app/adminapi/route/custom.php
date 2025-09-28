@@ -122,7 +122,14 @@ Route::group('saler_tools/customer', function () {
     Route::post('receipt_del', 'addon\saler_tools\app\adminapi\controller\Customer@receiptDel');
     Route::post('receipt_find', 'addon\saler_tools\app\adminapi\controller\Customer@receiptFind');
     Route::post('receipt_edit', 'addon\saler_tools\app\adminapi\controller\Customer@receiptEdit');
-
+    Route::post('customer_add', 'addon\saler_tools\app\adminapi\controller\Customer@customerAdd');
+    Route::post('customer_edit', 'addon\saler_tools\app\adminapi\controller\Customer@customerEdit');
+    Route::post('customer_find', 'addon\saler_tools\app\adminapi\controller\Customer@customerFind');
+    Route::post('customer_list', 'addon\saler_tools\app\adminapi\controller\Customer@customerList');
+    Route::post('customer_del', 'addon\saler_tools\app\adminapi\controller\Customer@customerDel');
+    Route::post('get_code', 'addon\saler_tools\app\adminapi\controller\Customer@getCode');
+    Route::post('customer_tj', 'addon\saler_tools\app\adminapi\controller\Customer@customerTj');
+    Route::post('to_price', 'addon\saler_tools\app\adminapi\controller\Goods@toPrice');
 });
 
 

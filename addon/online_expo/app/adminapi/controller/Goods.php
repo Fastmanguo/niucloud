@@ -58,15 +58,14 @@ class Goods extends BaseAdminController
         return app(GoodsService::class)->detail($goods_id);
     }
 
+    /**
+     * 改价
+     */
     public function detailEditMoney()
     {
         $data = $this->_vali([
             'goods_id.query'      => '请输入商品id',
-            'price.require' => '请输入商品销售价格',
-            'peer_price.require' => '请输入商品同行价格',
-            'total_cost.require' => '请输入商品成本价格',
-            'stock.require' => '请输入数量',
-
+            'goods_attr_list.require' => '请输入商品规格列表',
         ]);
         return app(GoodsService::class)->detailEditMoney($data);
     }

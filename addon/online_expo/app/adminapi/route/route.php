@@ -48,7 +48,8 @@ Route::group('online_expo', function () {
     // 浏览记录
     Route::get('record/lists', 'addon\online_expo\app\adminapi\controller\Record@lists');
 
-})->middleware([
+})
+->middleware([
     AdminCheckToken::class,
     AdminCheckRole::class,
 ]);

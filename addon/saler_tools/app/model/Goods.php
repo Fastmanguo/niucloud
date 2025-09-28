@@ -37,6 +37,17 @@ class Goods extends BaseModel
 
     protected $autoWriteTimestamp = 'datetime';
 
+    // 允许操作的字段
+    protected $field = [
+        'goods_id', 'site_id', 'category_id', 'brand_id', 'series_id', 'model_id', 'goods_cover',
+        'goods_image', 'detail_image', 'goods_name', 'goods_desc', 'goods_attachment', 'goods_attribute',
+        'goods_tag', 'goods_tips', 'goods_sku', 'goods_code', 'condition', 'template_id', 'watch_location',
+        'store_id', 'price', 'guide_price', 'peer_price', 'agent_price', 'total_cost', 'additional_total_cost',
+        'initial_cost', 'stock', 'recycle_type', 'recycling_uid', 'recycling_time', 'recycling_image',
+        'appraiser_uid', 'remark', 'remark_image', 'is_sale', 'target_audience', 'product_warranty_card',
+        'warranty_card_image', 'currency_code', 'is_online_expo', 'contact_entrusted', 'expire_time',
+        'create_uid', 'update_uid', 'create_time', 'update_time', 'goods_attr_list', 'customer_id','goods_number'
+    ];
 
     protected $type = [
         'goods_image'           => 'array',
@@ -60,6 +71,7 @@ class Goods extends BaseModel
         'stock'                 => 'int',
         'is_online_expo'        => 'int',
     ];
+
 
 
     public function searchSearchAttr($query, $value, $data)

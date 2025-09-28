@@ -41,7 +41,7 @@ class GoodsService extends BaseAdminService
         $model = new GoodsModel();
 
         $field = 'goods_id,site_id,goods_cover,goods_video,goods_image,condition,detail_image,category_id,goods_name,goods_desc,goods_attribute
-        ,goods_attachment,brand_id,series_id,model_id,peer_price,update_time,currency_code';
+        ,goods_attachment,brand_id,series_id,model_id,peer_price,update_time,currency_code,goods_attr_list';
 
         $model = $model->where($where)->withSearch(['category_id', 'search', 'site_id', 'brand_id'], $data)
             ->field($field)
@@ -54,13 +54,20 @@ class GoodsService extends BaseAdminService
         $user   = (new SysUser())->where('uid', $this->uid)->field("last_ip")->findOrEmpty();
         $currency_info = $this->getLocationByIP($user['last_ip']);
 
-        foreach ($result['data'] as $key => &$val){
-            if($val['peer_price'] != 0 && !empty($currency_info)){
-                $val['peer_price_'] = $this->convertCurrency($val['peer_price'], $val['currency_code'], $currency_info);
-                $val['currency_code_'] = $currency_info;
+        foreach ($result['data'] as $key=>$val){
+            if (empty($val['goods_attr_list'])){
+                $result['data'][$key]['goods_attr_list'] = [];
+                $result['data'][$key]['total_cost'] = 0;
+                $result['data'][$key]['peer_price'] = 0;
+                $result['data'][$key]['price'] = 0;
+            }else{
+                $result['data'][$key]['goods_attr_list'] = json_decode($val['goods_attr_list'],true);
+                $result['data'][$key]['total_cost'] = $result['data'][$key]['goods_attr_list'][0]['total_cost'];
+                $result['data'][$key]['peer_price'] = $result['data'][$key]['goods_attr_list'][0]['peer_price'];
+                $result['data'][$key]['price'] = $result['data'][$key]['goods_attr_list'][0]['price'];
             }
         }
-
+        
 
 
         // TODO： 处理收藏字段
@@ -74,34 +81,18 @@ class GoodsService extends BaseAdminService
         
         // 验证商品是否存在
         $model = new GoodsModel();
-        // $goods = $model->where('goods_id', $goods_id)
-        //     ->where('is_online_expo', 1)
-        //     ->findOrEmpty();
-            
-        // if ($goods->isEmpty()) {
-        //     return fail('商品不存在或未上线展会');
-        // }
         
         // 更新商品价格信息
         $updateData = [
-            'price' => intval($data['price']),
-            'peer_price' => intval($data['peer_price']),
-            'total_cost' => intval($data['total_cost']),
-            'stock' => intval($data['stock']),
+            'goods_attr_list' => json_encode($data['goods_attr_list'],JSON_UNESCAPED_UNICODE),
             'update_time' => date('Y-m-d H:i:s')
         ];
         
-        try {
-            $result = $model->where('goods_id', $goods_id)->update($updateData);
-            
-            if ($result) {
-                return success('商品价格更新成功');
-            } else {
-                return fail('商品价格更新失败');
-            }
-        } catch (\Exception $e) {
-            Log::error('商品价格更新失败: ' . $e->getMessage());
-            return fail('商品价格更新失败: ' . $e->getMessage());
+         $result = $model->where('goods_id', $goods_id)->update($updateData);
+        if ($result) {
+            return success('商品价格更新成功');
+        } else {
+            return fail('商品价格更新失败');
         }
     }
 
@@ -110,7 +101,7 @@ class GoodsService extends BaseAdminService
         $model = new GoodsModel();
 
         $field = 'goods_id,site_id,goods_cover,goods_video,condition,goods_image,detail_image,category_id,goods_name,goods_desc,goods_attribute,goods_attachment
-        ,brand_id,series_id,model_id,peer_price,is_sale,update_time,currency_code,country_code';
+        ,brand_id,series_id,model_id,peer_price,is_sale,update_time,currency_code,country_code,total_cost,goods_attr_list';
 
         $goods = $model->where('is_online_expo', 1)
             ->where('goods_id', $goods_id)
@@ -131,25 +122,35 @@ class GoodsService extends BaseAdminService
         #获取当前登录用户信息
         $user   = (new SysUser())->where('uid', $this->uid)->field("last_ip")->findOrEmpty();
         $goods['currency_info'] = $this->getLocationByIP( $user['last_ip']);
+        if(!empty($goods['goods_attr_list'])){
+            $goods['goods_attr_list'] = json_decode($goods['goods_attr_list'],true);
+            $goods['peer_price'] = $goods['goods_attr_list'][0]['peer_price'] ?? 0;
+            $goods['price'] = $goods['goods_attr_list'][0]['price'] ?? 0;
+            $goods['total_cost'] = $goods['goods_attr_list'][0]['total_cost'] ?? 0;
+        }else{
+            $goods['goods_attr_list'] = [];
+            $goods['peer_price'] = 0;
+            $goods['price'] = 0;
+            $goods['total_cost'] = 0;
+        }
+        // # 金额 货币类型
+        // $money = $goods['peer_price'];
+        // $currency_code = $goods['currency_code'];
 
-        # 金额 货币类型
-        $money = $goods['peer_price'];
-        $currency_code = $goods['currency_code'];
+        // $money_result_list = [
+        //     ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($money,$currency_code,'CNY')],
+        //     ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($money,$currency_code,'USD')],
+        //     ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($money,$currency_code,'EUR')],
+        //     ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($money,$currency_code,'JPY')],
+        //     ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($money,$currency_code,'GBP')],
+        //     ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($money,$currency_code,'HKD')],
+        //     ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($money,$currency_code,'KRW')],
+        //     ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($money,$currency_code,'SGD')],
+        //     ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($money,$currency_code,'AUD')],
+        //     ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($money,$currency_code,'CAD')]
+        // ];
 
-        $money_result_list = [
-            ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($money,$currency_code,'CNY')],
-            ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($money,$currency_code,'USD')],
-            ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($money,$currency_code,'EUR')],
-            ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($money,$currency_code,'JPY')],
-            ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($money,$currency_code,'GBP')],
-            ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($money,$currency_code,'HKD')],
-            ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($money,$currency_code,'KRW')],
-            ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($money,$currency_code,'SGD')],
-            ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($money,$currency_code,'AUD')],
-            ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($money,$currency_code,'CAD')]
-        ];
-
-        $goods['money_result_list'] = $money_result_list;
+        // $goods['money_result_list'] = $money_result_list;
 
         return success($goods->toArray());
 

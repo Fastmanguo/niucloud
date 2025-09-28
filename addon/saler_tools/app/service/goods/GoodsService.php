@@ -13,12 +13,14 @@ use addon\saler_tools\app\model\Goods as GoodsModel;
 use addon\saler_tools\app\model\GoodsLog;
 use addon\saler_tools\app\model\Order;
 use addon\saler_tools\app\model\SalerToolsGoodsAttr as SalerToolsGoodsAttrModel;
+use addon\saler_tools\app\model\SalerToolsGoodsCategory;
 use addon\saler_tools\app\model\SalerToolsGoodsCost;
 use addon\saler_tools\app\service\dict\SiteDictService;
 use addon\saler_tools\app\service\order\OrderService;
 use addon\saler_tools\app\service\shop\ShopService;
 use think\db\Query;
 use think\db\Raw;
+use app\model\sys\SysUser;
 
 /**
  * 商品管理
@@ -94,8 +96,28 @@ class GoodsService extends BaseAdminService
                 ->with($with);
         }
 
+        $resultList = $this->pageQuery($model);
+        
+        foreach ($resultList['data'] as $key=>$val){
+            $create_time = $val['create_time'];
+            $days = ceil((time() - strtotime($create_time))/86400);
+            $resultList['data'][$key]['days'] = "在库".$days."天";
 
-        return success($this->pageQuery($model));
+            if (empty($val['goods_attr_list'])){
+                $resultList['data'][$key]['goods_attr_list'] = [];
+                $resultList['data'][$key]['total_cost'] = 0;
+                $resultList['data'][$key]['peer_price'] = 0;
+                $resultList['data'][$key]['price'] = 0;
+            }else{
+                $resultList['data'][$key]['goods_attr_list'] = json_decode($val['goods_attr_list'],true);
+                $resultList['data'][$key]['total_cost'] = $resultList['data'][$key]['goods_attr_list'][0]['total_cost'];
+                $resultList['data'][$key]['peer_price'] = $resultList['data'][$key]['goods_attr_list'][0]['peer_price'];
+                $resultList['data'][$key]['price'] = $resultList['data'][$key]['goods_attr_list'][0]['price'];
+            }
+            
+        }
+
+        return success($resultList);
 
     }
     public function goodsTypePrice($site_id,$uid)
@@ -136,35 +158,44 @@ class GoodsService extends BaseAdminService
      * @return \think\Response
      * 仓库各类商品数量统计
      */
-    public function goodsWarehouseCount($goods_attribute,$site_id,$uid){
+    public function goodsWarehouseCount($goods_attribute,$uid){
         $model = new GoodsModel();
         
         // 基础查询条件
-        $where = [['site_id', '=', $site_id],['create_uid', '=', $uid]];
+        $where = [['create_uid', '=', $uid]];
 
         // 如果传入了goods_attribute参数，则添加查询条件
         if (!empty($goods_attribute)) {
-            $where = [['site_id', '=', $site_id],['create_uid', '=', $uid],['goods_attribute', '=', $goods_attribute]];
+            $where = [['create_uid', '=', $uid],['goods_attribute', '=', $goods_attribute]];
         }
         
         // 统计总条数
         $total_count = $model->where($where)->count();
-        // 统计category_id = 1的数量
+        // 统计category_id = 1的数量 腕表
         $category_1_count = $model->where($where)->where('category_id', 1)->count();
         
-        // 统计category_id = 18的数量
+        // 统计category_id = 18的数量  箱包 
         $category_18_count = $model->where($where)->where('category_id', 18)->count();
         
-        // 统计category_id = 29的数量
+        // 统计category_id = 29的数量   珠宝
         $category_29_count = $model->where($where)->where('category_id', 29)->count();
         
-        $result = [
-            'count' => $total_count+$category_1_count+$category_18_count+$category_29_count,
-            'total_count' => $total_count,
-            'category_1_count' => $category_1_count,
-            'category_18_count' => $category_18_count,
-            'category_29_count' => $category_29_count
+        // 统计category_id = 31的数量   鞋靴
+        $category_31_count = $model->where($where)->where('category_id', 31)->count();
+
+        // 统计category_id = 32的数量   服饰
+        $category_32_count = $model->where($where)->where('category_id', 32)->count();
+
+        // 统计category_id = 34的数量   配饰
+        $category_34_count = $model->where($where)->where('category_id', 34)->count();
+
+        // 统计category_id = 33的数量   其他
+        $category_33_count = $model->where($where)->where('category_id', 33)->count();
+        
+        $result = [ $total_count, $category_1_count, $category_18_count,$category_29_count,$category_31_count,$category_32_count,
+             $category_34_count,$category_33_count,
         ];
+
         
         return success($result);
     }
@@ -187,6 +218,13 @@ class GoodsService extends BaseAdminService
                 , 'goodsAttr'
             ])
             ->findOrEmpty();
+        
+        $category_id = $goods['category_id'];
+        // 根据category_id查询对应的category_name
+        if (!empty($category_id)) {
+            $category_name = (new SalerToolsGoodsCategory())->where('category_id', $category_id)->value('category_name');
+            $goods['category_name'] = $category_name;
+        }
 
         if ($goods->isEmpty()) {
             return fail('find_goods_empty');
@@ -204,54 +242,73 @@ class GoodsService extends BaseAdminService
                 ->where('site_id', $this->site_id)
                 ->value('money');
         }
-        $money = $goods['peer_price'];
-        $currency_code = $goods['currency_code'];
+        $goods_attr_list = json_decode($goods['goods_attr_list'],true);
+        $goods['goods_attr_list'] = $goods_attr_list;
+        if($goods_attr_list){
+            $goods['total_cost'] = $goods_attr_list[0]['total_cost'];
+            $goods['peer_price'] = $goods_attr_list[0]['peer_price'];
+            $goods['price'] = $goods_attr_list[0]['price'];
+        }
 
-        $money_peer_price = [
-            ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($money,$currency_code,'CNY')],
-            ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($money,$currency_code,'USD')],
-            ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($money,$currency_code,'EUR')],
-            ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($money,$currency_code,'JPY')],
-            ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($money,$currency_code,'GBP')],
-            ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($money,$currency_code,'HKD')],
-            ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($money,$currency_code,'KRW')],
-            ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($money,$currency_code,'SGD')],
-            ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($money,$currency_code,'AUD')],
-            ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($money,$currency_code,'CAD')]
-        ];
+        $user = (new SysUser())->where('uid', '=', $goods['create_uid'])->findOrEmpty()->toArray();
+        $goods['userInfo'] = $user;
 
-        $money_peer = [
-            ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'CNY')],
-            ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'USD')],
-            ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'EUR')],
-            ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'JPY')],
-            ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'GBP')],
-            ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'HKD')],
-            ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'KRW')],
-            ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'SGD')],
-            ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'AUD')],
-            ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'CAD')]
-        ];
-
-        $cost_one = $goods['total_cost']/$goods['stock'];
-        $goods['cost_one'] = round($cost_one,2);
-        $total_cost = [
-            ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($cost_one,$currency_code,'CNY')],
-            ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'USD')],
-            ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'EUR')],
-            ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'JPY')],
-            ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($cost_one,$currency_code,'GBP')],
-            ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($cost_one,$currency_code,'HKD')],
-            ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'KRW')],
-            ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'SGD')],
-            ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'AUD')],
-            ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'CAD')]
-        ];
-
-        $goods['money_peer_price'] = $money_peer_price;
-        $goods['money_peer'] = $money_peer;
-        $goods['money_total_cost'] = $total_cost;
+        $update_time = strtotime($goods['update_time']);
+        $hour = round((time() - $update_time) / 3600);
+        if($hour < 24){
+            $goods['updte_hour'] = $hour.'小时前';
+        }else{
+            $goods['updte_hour'] = intval($hour/24).'天前';
+        }
         return success($goods);
+        // $money = $goods['peer_price'];
+        // $currency_code = $goods['currency_code'];
+
+        // $money_peer_price = [
+        //     ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($money,$currency_code,'CNY')],
+        //     ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($money,$currency_code,'USD')],
+        //     ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($money,$currency_code,'EUR')],
+        //     ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($money,$currency_code,'JPY')],
+        //     ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($money,$currency_code,'GBP')],
+        //     ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($money,$currency_code,'HKD')],
+        //     ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($money,$currency_code,'KRW')],
+        //     ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($money,$currency_code,'SGD')],
+        //     ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($money,$currency_code,'AUD')],
+        //     ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($money,$currency_code,'CAD')]
+        // ];
+
+        // $money_peer = [
+        //     ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'CNY')],
+        //     ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'USD')],
+        //     ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'EUR')],
+        //     ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'JPY')],
+        //     ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'GBP')],
+        //     ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'HKD')],
+        //     ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'KRW')],
+        //     ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'SGD')],
+        //     ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'AUD')],
+        //     ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'CAD')]
+        // ];
+
+        // $cost_one = $goods['total_cost']/$goods['stock'];
+        // $goods['cost_one'] = round($cost_one,2);
+        // $total_cost = [
+        //     ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($cost_one,$currency_code,'CNY')],
+        //     ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'USD')],
+        //     ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'EUR')],
+        //     ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'JPY')],
+        //     ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($cost_one,$currency_code,'GBP')],
+        //     ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($cost_one,$currency_code,'HKD')],
+        //     ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'KRW')],
+        //     ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'SGD')],
+        //     ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'AUD')],
+        //     ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'CAD')]
+        // ];
+
+        // $goods['money_peer_price'] = $money_peer_price;
+        // $goods['money_peer'] = $money_peer;
+        // $goods['money_total_cost'] = $total_cost;
+        // return success($goods);
     }
     function convertCurrency($amount, $from_currency, $to_currency) {
         // 检查参数是否有效

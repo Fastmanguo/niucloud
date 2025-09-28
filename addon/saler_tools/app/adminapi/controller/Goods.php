@@ -56,10 +56,9 @@ class Goods extends BaseAdminController
     public function goodsWarehouseCount(){
         $data = $this->request->params([
             ['goods_attribute',""],
-            ['site_id',""],
             ['create_uid',""],
         ]);
-        return app(GoodsService::class)->goodsWarehouseCount($data['goods_attribute'],$data['site_id'],$data['create_uid']);
+        return app(GoodsService::class)->goodsWarehouseCount($data['goods_attribute'],$data['create_uid']);
     }
 
 
@@ -81,6 +80,21 @@ class Goods extends BaseAdminController
     public function detail($goods_id)
     {
         return app(GoodsService::class)->detail($goods_id);
+    }
+
+    /**
+     * @param $goods_id
+     * @return \think\Response
+     * 计算商品总价值
+     */
+    public function toPrice(){
+        $data = $this->_vali([
+            'price.query'         => '请输入要转换的金额',
+            'currency_code.query'          => '请输入当前货币代码',
+            'to_currency_code.query'    => '请输入目标货币代码',
+            
+        ]);
+        return app(GoodsService::class)->convertCurrency($data['price'],$data['currency_code'],$data['to_currency_code']);
     }
 
 
@@ -144,8 +158,16 @@ class Goods extends BaseAdminController
             // 质押商品属性
             'contact_entrusted.query'       => '', // 委托联系方式（质押/寄卖都与此项关联）
             'expire_time.query'             => '',
+            'goods_attr_list.default'       => [],
+            "customer_id.default"           => "",
         ]);
-
+        $arr_num = [];
+        foreach($data['goods_attr_list'] as $k => $v){
+            $data['goods_attr_list'][$k]['id'] = $k;
+            $arr_num[] = $v['goods_num'];
+        }
+        $data['stock'] = array_sum($arr_num);
+        $data['goods_attr_list'] = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
         return app(GoodsService::class)->add($data);
 
     }
@@ -212,10 +234,17 @@ class Goods extends BaseAdminController
             // 质押商品属性
             'contact_entrusted.query'       => '', // 委托联系方式（质押/寄卖都与此项关联）
             'expire_time.query'             => '',
+            'goods_number.default'          => '',
+            'goods_attr_list.default'       => [],
         ]);
 
         $data['goods_cover'] = $data['goods_image'][0] ?? '';
-
+        $arr_num = [];
+        foreach($data['goods_attr_list'] as $k => $v){
+            $arr_num[] = $v['goods_num'];
+        }
+        $data['stock'] = array_sum($arr_num);
+        $data['goods_attr_list'] = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
         return app(GoodsService::class)->edit($data);
     }
 
