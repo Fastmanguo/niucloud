@@ -190,7 +190,6 @@ class Customer extends BaseController
             'gender.require'   => "请输入客户性别",
             'birthday.default'   => "",
             'level.require'   => "请输入客户等级",
-            "uid.require"   => "请输入维护人ID",
             "remarks.default"   => "",
             "payment_id.default"   => "",
             "receipt_id.default"   => "",
@@ -221,6 +220,16 @@ class Customer extends BaseController
             "site_id.require"   => "请输入店铺ID",
         ]);
         return (new CustomerService())->customerList($data);
+    }
+
+    /**
+     * 客户详情
+     */
+    public function customerDetails(){
+        $data = $this->_vali([
+            'id.require'   => "请输入客户ID",
+        ]);
+        return (new CustomerService())->customerDetails($data['id']);
     }
 
     /**

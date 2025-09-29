@@ -185,7 +185,70 @@ class CustomerService extends BaseAdminService
             'address' => ''
         ];
         
-        // 判断文本格式并提取信息
+        // 预处理文本，添加空格（用户添加的代码）
+        $text = $text." ";
+        
+        // 1. 优先识别手机号（支持多种可能的手机号格式）
+        // 匹配11位手机号，可能有空格、连字符或无分隔符
+        $phonePatterns = [
+            '/1\d{10}/', // 标准11位手机号
+            '/1\d{3}\s\d{4}\s\d{4}/', // 138 0000 0000格式
+            '/1\d{3}-\d{4}-\d{4}/', // 138-0000-0000格式
+            '/1\d{3}[\s-]*\d{4}[\s-]*\d{4}/' // 更通用的格式
+        ];
+        
+        $foundPhone = false;
+        foreach ($phonePatterns as $pattern) {
+            if (preg_match($pattern, $text, $phoneMatches)) {
+                // 清理手机号，去除可能的空格和连字符
+                $result['phone'] = preg_replace('/[^0-9]/', '', $phoneMatches[0]);
+                $foundPhone = true;
+                break;
+            }
+        }
+        
+        // 2. 识别姓名（通常是连续的中文字符）
+        $namePatterns = [
+            // 匹配2-4个中文字符的姓名
+            '/[\x{4e00}-\x{9fa5}]{2,4}/u',
+            // 尝试在手机号前面找姓名
+            '/([\x{4e00}-\x{9fa5}]{2,4})[\s,，]*(?=1\d{3})/u',
+            // 尝试在"收货人"、"姓名"等关键词后找姓名
+            '/[收货人姓名]{1,3}[:：]\s*([\x{4e00}-\x{9fa5}]{2,4})/u'
+        ];
+        
+        foreach ($namePatterns as $pattern) {
+            if (preg_match($pattern, $text, $nameMatches)) {
+                $candidateName = $nameMatches[count($nameMatches) - 1];
+                // 避免将地址中的部分误识别为姓名
+                if (!preg_match('/[省市县区乡镇街道]/u', $candidateName)) {
+                    $result['name'] = $candidateName;
+                    break;
+                }
+            }
+        }
+        
+        // 3. 识别地址信息（可选，尽量提取剩余的文本）
+        $tempText = $text;
+        
+        // 移除已识别的手机号和姓名
+        if (!empty($result['phone'])) {
+            $tempText = preg_replace('/'.preg_quote($result['phone'], '/').'/', '', $tempText);
+        }
+        if (!empty($result['name'])) {
+            $tempText = preg_replace('/'.preg_quote($result['name'], '/').'/', '', $tempText);
+        }
+        
+        // 清理临时文本中的标签
+        $tempText = preg_replace('/[收货人姓名手机号所在地区详细地址]{1,4}[:：]/u', '', $tempText);
+        $tempText = preg_replace('/\s+/', ' ', $tempText);
+        $tempText = trim($tempText);
+        
+        if (!empty($tempText)) {
+            $result['address'] = $tempText;
+        }
+        
+        // 4. 尝试处理标准格式（保留原有的功能）
         if (strpos($text, '收货人：') !== false && strpos($text, '手机号：') !== false && (strpos($text, '所在地区：') !== false || strpos($text, '详细地址：') !== false)) {
             // 格式1: 带标签的格式
             $namePattern = '/收货人：([^\s\r\n]+)/';
@@ -211,29 +274,33 @@ class CustomerService extends BaseAdminService
             if (!empty($addressParts)) {
                 $result['address'] = implode(' ', $addressParts);
             }
-        } else {
-            // 格式2: 空格分隔的格式
+        } else if (empty($result['name']) || empty($result['phone'])) {
+            // 格式2: 空格分隔的格式（当智能识别失败时使用）
             $parts = preg_split('/\s+/', $text);
             if (count($parts) >= 3) {
-                $result['name'] = $parts[0];
+                if (empty($result['name'])) {
+                    $result['name'] = $parts[0];
+                }
                 
-                // 查找手机号（通常是11位数字）
-                foreach ($parts as $index => $part) {
-                    if (preg_match('/^1\d{10}$/', $part)) {
-                        $result['phone'] = $part;
-                        // 收集地址信息（排除姓名和手机号部分）
-                        $addressParts = [];
-                        foreach ($parts as $addrIndex => $addrPart) {
-                            if ($addrIndex !== 0 && $addrIndex !== $index) {
-                                $addressParts[] = $addrPart;
+                // 查找手机号
+                if (empty($result['phone'])) {
+                    foreach ($parts as $index => $part) {
+                        if (preg_match('/^1\d{10}$/', $part)) {
+                            $result['phone'] = $part;
+                            // 收集地址信息
+                            $addressParts = [];
+                            foreach ($parts as $addrIndex => $addrPart) {
+                                if ($addrIndex !== 0 && $addrIndex !== $index) {
+                                    $addressParts[] = $addrPart;
+                                }
                             }
+                            $result['address'] = implode(' ', $addressParts);
+                            break;
                         }
-                        $result['address'] = implode(' ', $addressParts);
-                        break;
                     }
                 }
                 
-                // 如果没有找到标准手机号格式，默认使用第二个部分作为手机号，后面的作为地址
+                // 如果没有找到标准手机号格式，默认使用第二个部分作为手机号
                 if (empty($result['phone']) && isset($parts[1])) {
                     $result['phone'] = $parts[1];
                     $addressParts = array_slice($parts, 2);
@@ -338,6 +405,13 @@ class CustomerService extends BaseAdminService
      */
     public function customerEdit($data){
         $customer = new CustomerModel();
+        if($data['payment_id']){
+            $data['payment_id'] = json_encode($data['payment_id']);
+        }
+        if($data['receipt_id']){
+            $data['receipt_id'] = json_encode($data['receipt_id']);
+        }
+
         $customer->where('id', '=', $data['id'])->update([
             'customer_name' => $data['customer_name'],
             'customer_mobile' => $data['customer_mobile'],
@@ -347,7 +421,6 @@ class CustomerService extends BaseAdminService
             'gender' => $data['gender'],
             'birthday' => $data['birthday'],
             'level' => $data['level'],
-            'uid' => $data['uid'],
             'remarks' => $data['remarks'],
             'payment_id' => $data['payment_id'],
             'receipt_id' => $data['receipt_id'],
@@ -363,8 +436,28 @@ class CustomerService extends BaseAdminService
     public function customerFind($id){
         $customer = new CustomerModel();
         $data = $customer->where('id', '=', $id)->find()->toArray();
-        $user = (new SysUser())->where('uid', '=', $data['uid'])->findOrEmpty()->toArray();
-        $data['userInfo'] = $user;
+        
+        if($data['payment_id']!= ""){
+            $data['payment_id'] = json_decode($data['payment_id'], true);
+        }
+        if($data['receipt_id']!= ""){
+            $data['receipt_id'] = json_decode($data['receipt_id'], true);
+        }
+
+        $user = (new SysUser())->where('uid', '=', $data['create_id'])->findOrEmpty()->toArray();
+        $data['create_name'] = $user['real_name'];
+        $data['create_image'] = $user['head_img'];
+        
+        $maintainerUser = (new SysUser())->where('uid', '=', $data['maintainer_id'])->findOrEmpty()->toArray();
+        if($maintainerUser){
+            $data['maintainer_name'] = $maintainerUser['real_name'];
+            $data['maintainer_image'] = $maintainerUser['head_img'];
+        }else{
+            $data['maintainer_name'] = "";
+            $data['maintainer_image'] = "";
+        }
+        
+
         return success($data);
     }
 
@@ -400,6 +493,9 @@ class CustomerService extends BaseAdminService
         $page = isset($params['page']) ? $params['page'] : 1;
         $page_size = isset($params['page_size']) ? $params['page_size'] : 10;
         
+        // 添加根据创建时间倒序排序
+        $model = $model->order('create_time', 'desc');
+        
         // 执行分页查询
         $list = $model->paginate([
             'list_rows' => $page_size,
@@ -407,9 +503,17 @@ class CustomerService extends BaseAdminService
             'var_page' => 'page'
         ]);
         
+        $result_list = $list->items();
+
+        foreach($result_list as $key => $item){
+            $result_list[$key]['c_order_num'] = 0;
+            $result_list[$key]['c_transaction_monery'] = 0;
+            $result_list[$key]['c_profit'] = 0;
+        }
+
         // 格式化分页结果
         $result = [
-            'data' => $list->items(),
+            'data' => $result_list,
             'total' => $list->total(),
             'page' => $page,
             'page_size' => $page_size,
@@ -417,6 +521,48 @@ class CustomerService extends BaseAdminService
         ];
         
         return success($result);
+    }
+    
+    /**
+      * 客户详情
+      */
+    public function customerDetails($id){
+        $customer = new CustomerModel();
+        $data = $customer->where('id', '=', $id)->findOrEmpty()->toArray();
+        //购买
+        $data['buy_order_num'] = 0;
+        $data['buy_transaction_monery'] = 0;
+        $data['buy_profit'] = 0;
+        
+        //寄卖
+        $data['consignment_order_num'] = 0;
+        $data['consignment_transaction_monery'] = 0;
+        $data['consignment_profit'] = 0;
+
+        //质押
+        $data['staking_order_num'] = 0;
+        $data['staking_transaction_monery'] = 0;
+        $data['staking_profit'] = 0;
+
+        //保养
+        $data['maintainer_order_num'] = 0;
+        $data['maintainer_transaction_monery'] = 0;
+        $data['maintainer_profit'] = 0;
+
+        $user = (new SysUser())->where('uid', '=', $data['create_id'])->findOrEmpty()->toArray();
+        $data['create_name'] = $user['real_name'];
+        $data['create_image'] = $user['head_img'];
+        
+        $maintainerUser = (new SysUser())->where('uid', '=', $data['maintainer_id'])->findOrEmpty()->toArray();
+        if($maintainerUser){
+            $data['maintainer_name'] = $maintainerUser['real_name'];
+            $data['maintainer_image'] = $maintainerUser['head_img'];
+        }else{
+            $data['maintainer_name'] = "";
+            $data['maintainer_image'] = "";
+        }
+
+        return success($data);
     }
 
      /**
