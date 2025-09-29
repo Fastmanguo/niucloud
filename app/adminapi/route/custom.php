@@ -127,6 +127,7 @@ Route::group('saler_tools/customer', function () {
     Route::post('customer_find', 'addon\saler_tools\app\adminapi\controller\Customer@customerFind');
     Route::post('customer_list', 'addon\saler_tools\app\adminapi\controller\Customer@customerList');
     Route::post('customer_del', 'addon\saler_tools\app\adminapi\controller\Customer@customerDel');
+    Route::post('customer_details', 'addon\saler_tools\app\adminapi\controller\Customer@customerDetails');
     Route::post('get_code', 'addon\saler_tools\app\adminapi\controller\Customer@getCode');
     Route::post('customer_tj', 'addon\saler_tools\app\adminapi\controller\Customer@customerTj');
     Route::post('to_price', 'addon\saler_tools\app\adminapi\controller\Goods@toPrice');
