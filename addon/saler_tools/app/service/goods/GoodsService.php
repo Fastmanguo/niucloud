@@ -15,13 +15,14 @@ use addon\saler_tools\app\model\Order;
 use addon\saler_tools\app\model\SalerToolsGoodsAttr as SalerToolsGoodsAttrModel;
 use addon\saler_tools\app\model\SalerToolsGoodsCategory;
 use addon\saler_tools\app\model\SalerToolsGoodsCost;
+use addon\saler_tools\app\model\Collect;
 use addon\saler_tools\app\service\dict\SiteDictService;
 use addon\saler_tools\app\service\order\OrderService;
 use addon\saler_tools\app\service\shop\ShopService;
 use think\db\Query;
 use think\db\Raw;
 use app\model\sys\SysUser;
-
+use app\model\member\CustomerModel;
 /**
  * 商品管理
  * Class GoodsService
@@ -109,10 +110,18 @@ class GoodsService extends BaseAdminService
                 $resultList['data'][$key]['peer_price'] = 0;
                 $resultList['data'][$key]['price'] = 0;
             }else{
-                $resultList['data'][$key]['goods_attr_list'] = json_decode($val['goods_attr_list'],true);
-                $resultList['data'][$key]['total_cost'] = $resultList['data'][$key]['goods_attr_list'][0]['total_cost'];
-                $resultList['data'][$key]['peer_price'] = $resultList['data'][$key]['goods_attr_list'][0]['peer_price'];
-                $resultList['data'][$key]['price'] = $resultList['data'][$key]['goods_attr_list'][0]['price'];
+                $goods_attr_list = json_decode($val['goods_attr_list'],true);
+                $resultList['data'][$key]['goods_attr_list'] = $goods_attr_list;
+                // 确保数组不为空且有索引0
+                if (!empty($goods_attr_list) && isset($goods_attr_list[0])) {
+                    $resultList['data'][$key]['total_cost'] = $goods_attr_list[0]['total_cost'] ?? 0;
+                    $resultList['data'][$key]['peer_price'] = $goods_attr_list[0]['peer_price'] ?? 0;
+                    $resultList['data'][$key]['price'] = $goods_attr_list[0]['price'] ?? 0;
+                } else {
+                    $resultList['data'][$key]['total_cost'] = 0;
+                    $resultList['data'][$key]['peer_price'] = 0;
+                    $resultList['data'][$key]['price'] = 0;
+                }
             }
             
         }
@@ -260,7 +269,40 @@ class GoodsService extends BaseAdminService
         }else{
             $goods['updte_hour'] = intval($hour/24).'天前';
         }
+        //客户类型 /新增 1：同行  2：客户 3：平台 4：其他,
+        if($goods['customer_type'] == '1'){
+            $goods['customer_type_name'] = '同行';
+        }elseif($goods['customer_type'] == '2'){
+            $goods['customer_type_name'] = '客户';
+        }elseif($goods['customer_type'] == '3'){
+            $goods['customer_type_name'] = '平台';
+        }else{
+            $goods['customer_type_name'] = '其他';
+        }
+        
+        $customer = new CustomerModel();
+        $data_info = $customer->where('id', '=', $goods['customer_id'])->find()->toArray();
+        $goods['customer_name'] = $data_info['customer_name'];
+
+        $goods['detail_image'] = json_decode($goods['detail_image'],true);
         return success($goods);
+        // $uid = $goods['create_uid'];
+        // $site_id = $goods['site_id'];
+        // $goods_id = $goods['goods_id'];
+
+        // // 查询该商品的收藏信息
+        // $collectModel = new Collect();
+        // $collectInfo = $collectModel->where('relate_id', $goods_id)
+        //     ->where('site_id', $site_id)
+        //     ->where('uid', $uid)
+        //     ->findOrEmpty();
+        
+        // if($collectInfo->isEmpty()){
+        //     $goods['is_collected'] = 0;
+        // }else{
+        //     $goods['is_collected'] = 1;
+        // }
+        
         // $money = $goods['peer_price'];
         // $currency_code = $goods['currency_code'];
 
@@ -420,7 +462,7 @@ class GoodsService extends BaseAdminService
 
         // 处理 goods_image detail_image 默认值
         $data['goods_image']  = empty($data['goods_image']) ? [] : $data['goods_image'];
-        $data['detail_image'] = empty($data['detail_image']) ? [] : $data['detail_image'];
+        $data['detail_image'] = json_encode($data['detail_image'], JSON_UNESCAPED_UNICODE);
 
         $model = new GoodsModel();
 
@@ -481,7 +523,7 @@ class GoodsService extends BaseAdminService
 
         $model->startTrans();
         try {
-
+            
             $goods->save($data);
 
             // 写入参数
@@ -499,7 +541,7 @@ class GoodsService extends BaseAdminService
             // 更新参数
             $cost_model = new SalerToolsGoodsCost();
             $cost_model->where('site_id', $this->site_id)->where('goods_id', $goods->goods_id)->delete();
-
+            
             foreach ($data['goods_cost'] as $cost) {
                 $cost['site_id']  = $this->site_id;
                 $cost['goods_id'] = $goods->goods_id;

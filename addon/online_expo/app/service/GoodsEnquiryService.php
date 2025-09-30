@@ -11,6 +11,7 @@ namespace addon\online_expo\app\service;
 use addon\saler_tools\app\common\BaseAdminService;
 use addon\online_expo\app\model\GoodsEnquiry as GoodsEnquiryModel;
 use addon\online_expo\app\model\Goods as GoodsModel;
+use app\model\sys\SysUser;
 
 /**
  *
@@ -43,6 +44,24 @@ class GoodsEnquiryService extends BaseAdminService
 
         return success($this->pageQuery($model));
 
+    }
+
+    /**
+     * 最近出价
+     */
+    public function recentBid($params)
+    {
+        $goods_id = $params['goods_id'];
+        $model = new GoodsEnquiryModel();
+        $result = $model->where('goods_id', $goods_id)->order('id', 'desc')->select();
+
+        foreach ($result as $key => $value) {
+            $uid = $value['uid'];
+            $user = (new SysUser())->where('uid', $uid)->findOrEmpty();
+            $result[$key]['real_name'] = $user['real_name'];
+            $result[$key]['head_img'] = $user['head_img'];
+        }
+        return success($result->toArray());
     }
 
     /**

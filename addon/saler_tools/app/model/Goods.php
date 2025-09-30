@@ -46,7 +46,7 @@ class Goods extends BaseModel
         'initial_cost', 'stock', 'recycle_type', 'recycling_uid', 'recycling_time', 'recycling_image',
         'appraiser_uid', 'remark', 'remark_image', 'is_sale', 'target_audience', 'product_warranty_card',
         'warranty_card_image', 'currency_code', 'is_online_expo', 'contact_entrusted', 'expire_time',
-        'create_uid', 'update_uid', 'create_time', 'update_time', 'goods_attr_list', 'customer_id','goods_number'
+        'create_uid', 'update_uid', 'create_time', 'update_time', 'goods_attr_list', 'customer_id','goods_number','customer_type',
     ];
 
     protected $type = [

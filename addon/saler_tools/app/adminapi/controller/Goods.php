@@ -158,8 +158,10 @@ class Goods extends BaseAdminController
             // 质押商品属性
             'contact_entrusted.query'       => '', // 委托联系方式（质押/寄卖都与此项关联）
             'expire_time.query'             => '',
+            'goods_number.default'          => "",
             'goods_attr_list.default'       => [],
             "customer_id.default"           => "",
+            "customer_type.default"         => "",
         ]);
         $arr_num = [];
         foreach($data['goods_attr_list'] as $k => $v){
@@ -234,8 +236,10 @@ class Goods extends BaseAdminController
             // 质押商品属性
             'contact_entrusted.query'       => '', // 委托联系方式（质押/寄卖都与此项关联）
             'expire_time.query'             => '',
-            'goods_number.default'          => '',
+            'goods_number.default'          => "",
             'goods_attr_list.default'       => [],
+            "customer_id.default"           => "",
+            "customer_type.default"         => "",
         ]);
 
         $data['goods_cover'] = $data['goods_image'][0] ?? '';
@@ -245,6 +249,7 @@ class Goods extends BaseAdminController
         }
         $data['stock'] = array_sum($arr_num);
         $data['goods_attr_list'] = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
+        $data['detail_image'] = json_encode($data['detail_image'], JSON_UNESCAPED_UNICODE);
         return app(GoodsService::class)->edit($data);
     }
 

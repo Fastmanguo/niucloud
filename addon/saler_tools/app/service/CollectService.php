@@ -85,9 +85,9 @@ class CollectService extends BaseAdminService
             ->findOrEmpty();
 
         if ($model->isEmpty()) {
-            return fail();
+            return success(0);
         } else {
-            return success();
+            return success(1);
         }
     }
 

@@ -30,6 +30,7 @@ Route::group('online_expo', function () {
         Route::get('lists', 'addon\online_expo\app\adminapi\controller\GoodsEnquiry@lists');
         Route::put('post_bid', 'addon\online_expo\app\adminapi\controller\GoodsEnquiry@postBid');
         Route::put('re_bid', 'addon\online_expo\app\adminapi\controller\GoodsEnquiry@reBid');
+        Route::post('recent_bid', 'addon\online_expo\app\adminapi\controller\GoodsEnquiry@recentBid');
     })->middleware(AdminLog::class);
 
     Route::group('contact', function () {

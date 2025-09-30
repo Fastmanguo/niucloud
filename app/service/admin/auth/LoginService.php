@@ -241,6 +241,11 @@ class LoginService extends BaseAdminService
             $user_service = new UserService();
             $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
         }elseif ($login_type == "6"){
+
+            // $mobile = $data['wx_ali_mobile'];
+            // $mobile_infp = $user_oauth_model->where('mobile', $mobile)->findOrEmpty();
+            // if (!$mobile_infp->isEmpty()) return ['msg'=>'当前手机号已注册'];
+            
             $user_oauth = $user_oauth_model->where('wx_openid', $data['wx_openid'])->findOrEmpty();
             if ($user_oauth->isEmpty()){
                 try {
@@ -264,6 +269,7 @@ class LoginService extends BaseAdminService
                         'invitation_uid'  => 0,
                         'invitation_code' => '',
                         'wx_openid'           => $data['wx_openid'],
+                        // 'mobile'           => $mobile,
                     ]);
                     $user_oauth = $user_oauth_model->where('wx_openid', $data['wx_openid'])->findOrEmpty();
                     $user_service = new UserService();
@@ -277,6 +283,10 @@ class LoginService extends BaseAdminService
                 $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
             }
         }elseif ($login_type == "7") {
+            // $mobile = $data['wx_ali_mobile'];
+            // $mobile_infp = $user_oauth_model->where('mobile', $mobile)->findOrEmpty();
+            // if (!$mobile_infp->isEmpty()) return ['msg'=>'当前手机号已注册'];
+
             $user_oauth = $user_oauth_model->where('ali_openid', $data['user_id'])->findOrEmpty();
             if ($user_oauth->isEmpty()) {
                 try {
@@ -300,6 +310,7 @@ class LoginService extends BaseAdminService
                         'invitation_uid' => 0,
                         'invitation_code' => '',
                         'ali_openid' => $data['user_id'],
+                        // 'mobile' => $mobile,
                     ]);
                     $user_oauth = $user_oauth_model->where('ali_openid', $data['user_id'])->findOrEmpty();
                     $user_service = new UserService();

@@ -58,11 +58,10 @@ class Login extends BaseAdminController
             [ 'google_openid', '' ],
             [ 'google_image', '' ],
             [ 'ail_code', '' ],
-            [ 'wx_code', '' ]
+            [ 'wx_code', '' ],
+            [ 'wx_ali_mobile', '' ],
         ]);
         
-
-
         //获取微信登录信息
         if($data['login_type'] == "6"){
             if(!$data['wx_code']){
@@ -73,7 +72,6 @@ class Login extends BaseAdminController
             $data['real_name'] = $wx_info['nickname'];
             $data['wx_image'] = $wx_info['headimgurl'];
             // return success($wx_info);
-
         }
 
 

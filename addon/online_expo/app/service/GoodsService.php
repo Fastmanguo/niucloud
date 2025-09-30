@@ -14,6 +14,8 @@ use addon\saler_tools\app\service\shop\ShopService;
 use addon\online_expo\app\service\StatService;
 use app\model\sys\SysUser;
 use think\facade\Log;
+use think\facade\Db;
+use addon\saler_tools\app\model\Collect;
 
 /**
  *
@@ -81,18 +83,33 @@ class GoodsService extends BaseAdminService
         
         // 验证商品是否存在
         $model = new GoodsModel();
+        $goods = $model->where('goods_id', $goods_id)->find();
+        if (!$goods) {
+            return fail('商品不存在');
+        }
         
-        // 更新商品价格信息
-        $updateData = [
-            'goods_attr_list' => json_encode($data['goods_attr_list'],JSON_UNESCAPED_UNICODE),
-            'update_time' => date('Y-m-d H:i:s')
-        ];
+        // 使用直接SQL执行，绕过ORM字段验证
+        $goods_attr_list = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
+        $update_time = date('Y-m-d H:i:s');
         
-         $result = $model->where('goods_id', $goods_id)->update($updateData);
-        if ($result) {
-            return success('商品价格更新成功');
-        } else {
-            return fail('商品价格更新失败');
+        try {
+            // 获取表名
+            $table_name = $model->getTable();
+            // 执行原生SQL更新
+            $result = Db::execute("UPDATE {$table_name} SET goods_attr_list = :goods_attr_list, update_time = :update_time WHERE goods_id = :goods_id", [
+                'goods_attr_list' => $goods_attr_list,
+                'update_time' => $update_time,
+                'goods_id' => $goods_id
+            ]);
+            
+            if ($result !== false) {
+                return success('商品价格更新成功');
+            } else {
+                return fail('商品价格更新失败');
+            }
+        } catch (\Exception $e) {
+            // 记录错误信息
+            return fail('更新失败：' . $e->getMessage());
         }
     }
 
@@ -133,24 +150,6 @@ class GoodsService extends BaseAdminService
             $goods['price'] = 0;
             $goods['total_cost'] = 0;
         }
-        // # 金额 货币类型
-        // $money = $goods['peer_price'];
-        // $currency_code = $goods['currency_code'];
-
-        // $money_result_list = [
-        //     ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($money,$currency_code,'CNY')],
-        //     ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($money,$currency_code,'USD')],
-        //     ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($money,$currency_code,'EUR')],
-        //     ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($money,$currency_code,'JPY')],
-        //     ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($money,$currency_code,'GBP')],
-        //     ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($money,$currency_code,'HKD')],
-        //     ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($money,$currency_code,'KRW')],
-        //     ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($money,$currency_code,'SGD')],
-        //     ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($money,$currency_code,'AUD')],
-        //     ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($money,$currency_code,'CAD')]
-        // ];
-
-        // $goods['money_result_list'] = $money_result_list;
 
         return success($goods->toArray());
 
