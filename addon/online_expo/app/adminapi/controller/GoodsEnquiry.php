@@ -30,6 +30,17 @@ class GoodsEnquiry extends BaseAdminController
 
     }
 
+    /**
+     * 最近出价
+     */
+    public function recentBid()
+    {
+        $data = $this->_vali([
+            'goods_id.require' => '请输入商品id',
+        ]);
+        return app(GoodsEnquiryService::class)->recentBid($data);
+    }
+
 
     /**
      * 出价
