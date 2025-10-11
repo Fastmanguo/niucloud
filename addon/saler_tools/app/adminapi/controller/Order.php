@@ -69,6 +69,11 @@ class Order extends BaseAdminController
     {
 
         $data = $this->_vali([
+            'goods_attribute.default'        => '',
+            'customer_id.default'           => '',
+            'category_id.default'           => '',
+            "goods_attr_list.default"       => '',
+
             'goods_id.default'              => '',
             'goods_cover.default'           => '',
             'goods_name.default'            => '',
@@ -135,6 +140,11 @@ class Order extends BaseAdminController
             'paid_remark.default'         => '',
             'transaction_time.query'      => '',// 销售时间
             'order_status.query'          => '',
+            
+            'goods_attribute.default'        => '',
+            'customer_id.default'           => '',
+            'category_id.default'           => '',
+            "goods_attr_list.default"       => '',
         ]);
 
 
