@@ -462,5 +462,6 @@ Route::group('goods', function () {
     Route::get('goods_warehouse_count', 'addon\saler_tools\app\adminapi\controller\Goods@goodsWarehouseCount');
     Route::get('goods_type_price', 'addon\saler_tools\app\adminapi\controller\Goods@goodsTypePrice');
     Route::get('goods_order_count', 'addon\saler_tools\app\adminapi\controller\Order@goodsOrderCount');
+    Route::get('order/get_count', 'addon\saler_tools\app\adminapi\controller\Order@getCount');
 });
 

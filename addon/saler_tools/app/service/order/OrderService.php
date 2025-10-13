@@ -17,6 +17,8 @@ use addon\saler_tools\app\service\shop\ShopService;
 use app\model\sys\SysUser;
 use core\exception\AdminException;
 use think\Response;
+use app\model\member\CustomerModel;
+use Kkokk\Poster\Facades\Facade;
 
 /**
  * 订单服务
@@ -67,13 +69,15 @@ class OrderService extends BaseAdminService
         return success($result);
     }
 
-    public function lists($params, $order = [])
+    public function lists($params, $order = [],$type = 0,$site_id = 0)
     {
         $order_model = new OrderModel();
 
-        $where = [
-            ['site_id', '=', $this->site_id]
-        ];
+        if($site_id != 0 ){
+            $where = [['site_id', '=', $site_id]];
+        }else{
+            $where = [['site_id', '=', $this->site_id]];
+        }
 
         if (isset($params['is_delivery'])) {
             if ($params['is_delivery'] == 1) {
@@ -129,7 +133,12 @@ class OrderService extends BaseAdminService
             $item['sale_name'] = implode(';', array_intersect_key($user_list, array_flip($item['sale_uids'])));
         }
 
-        return success($result);
+        if($type == 1){
+            return $result['total'];
+        }else{
+            return success($result);
+        }
+        
 
     }
 
@@ -161,6 +170,14 @@ class OrderService extends BaseAdminService
         if (isset($data['option']) && $data['option'] == 'open_order') {
             $order['order_status'] = self::ADD_ORDER;
         }
+        
+        if(!empty($order['goods_attr_list'])){
+            $order['goods_attr_list'] = json_decode($order['goods_attr_list'], true);
+        }
+
+        $customer = new CustomerModel();
+        $data_info = $customer->where('id', '=', $order['customer_id'])->find()->toArray();
+        $order['customer_name'] = $data_info['customer_name'];
 
         return success($order);
 
@@ -215,6 +232,11 @@ class OrderService extends BaseAdminService
 
             }
 
+            // 处理并保存指定的四个参数
+            if (!empty($data['goods_attr_list'])) {
+                $data['goods_attr_list'] = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
+            }
+
             $order->save($data);
 
             $order_model->commit();
@@ -253,8 +275,17 @@ class OrderService extends BaseAdminService
             if ($goods['stock'] <= 0) {
                 return fail('goods_no_stock');
             }
+            
+            //计算所有规格的开单总数量
+            $billing_goods_num = [0];
+            if (!empty($data['goods_attr_list'])) {
+                foreach ($data['goods_attr_list'] as $key=>$val) {
+                    $billing_goods_num[] = $val['billing_goods_num'];
+                }
+            }
+            $billing_goods_num = array_sum($billing_goods_num);
 
-            if ($goods['stock'] < $data['goods_num']) return fail('goods_no_stock');
+            if ($goods['stock'] < $billing_goods_num) return fail('goods_no_stock');
 
             if ($goods['is_sale'] != 1) return fail('goods_no_sale');
 
@@ -273,8 +304,8 @@ class OrderService extends BaseAdminService
             if (!empty($goods_id)) {
                 $goods_model->where('goods_id', $goods_id)->lock(true)->findOrEmpty();
 
-                $goods_model->where('goods_id', $goods_id)->setDec('stock', $data['goods_num']);
-                $goods_model->where('goods_id', $goods_id)->setInc('sale_num', $data['goods_num']);
+                $goods_model->where('goods_id', $goods_id)->setDec('stock', $billing_goods_num);
+                $goods_model->where('goods_id', $goods_id)->setInc('sale_num', $billing_goods_num);
 
                 // 如果已经卖完则下架删除
                 $goods_model->where([
@@ -297,6 +328,11 @@ class OrderService extends BaseAdminService
             // 填写店铺货币类型
             $shop                  = (new ShopService())->info();
             $data['currency_code'] = $shop['currency_code'];
+
+            // 处理并保存指定的四个参数
+            if (!empty($data['goods_attr_list'])) {
+                $data['goods_attr_list'] = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
+            }
 
             $res = $order_model->save($data);
 
@@ -330,13 +366,20 @@ class OrderService extends BaseAdminService
             return fail('find_note_goods');
         }
 
-        if ($goods['stock'] <= 0) {
+        if (intval($goods['stock']) <= 0) {
             return fail('goods_no_stock');
         }
 
         if ($goods['is_sale'] != 1) return fail('goods_no_sale');
 
         $goods = $goods->toArray();
+        $goods_attr_list = json_decode($goods['goods_attr_list'], true);
+        foreach($goods_attr_list as $key => $item){
+            $goods_attr_list[$key]['billing_goods_num'] = "";
+            $goods_attr_list[$key]['money'] = "";
+            $goods_attr_list[$key]['status'] = False;
+        }
+        $goods_attr_list[0]['status'] = True;
 
         $data = [
             'goods_id'              => $goods_id,
@@ -354,6 +397,9 @@ class OrderService extends BaseAdminService
             'additional_total_cost' => $goods['additional_total_cost'],
             'recycling_time'        => $goods['recycling_time'],
             'payment_receipt'       => [],
+            "category_id"           => $goods['category_id'],
+            "customer_id"           => $goods['customer_id'],
+            "goods_attr_list"       => $goods_attr_list,
             'additional_cost'       => array_map(function ($item) {
                 return [
                     'cost_name' => $item['cost_name'],
@@ -362,6 +408,15 @@ class OrderService extends BaseAdminService
                 ];
             }, $goods['goodsCost'] ?? [])
         ];
+
+
+        $customer = new CustomerModel();
+        if(!empty($goods['customer_id'])){
+            $data_info = $customer->where('id', '=', $goods['customer_id'])->find()->toArray();
+            $data['customer_name'] = $data_info['customer_name'];
+        }else{
+            $data['customer_name'] = '';
+        }
 
         return success($data);
 
@@ -627,8 +682,7 @@ class OrderService extends BaseAdminService
         $data['paid_uid']  = $this->uid;
         $data['paid_time'] = date('Y-m-d H:i:s');
 
-        $order->allowField(['paid_receipt', 'paid_remark', 'paid_time', 'paid_uid', 'is_paid'])
-            ->save($data);
+        $order->allowField(['paid_receipt', 'paid_remark', 'paid_time', 'paid_uid', 'is_paid', 'paid_type', 'shipment_type', 'logistics_code'])->save($data);
 
         return success();
     }

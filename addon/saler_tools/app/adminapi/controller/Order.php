@@ -32,6 +32,43 @@ class Order extends BaseAdminController
         return app(OrderService::class)->goodsOrderCount($data['site_id'],$data['create_uid']);
     }
 
+    /**
+     * @return \think\Response
+     * 订单统计
+     */
+    public function getCount()
+    {
+         $data = $this->_vali([
+            'start_time.default'   => '',
+            'end_time.default'     => '',
+            'search.default'       => '',
+            'site_id.require'     => '店铺id不能为空',
+        ]);
+        
+        if($data['start_time']){
+            $all_data['start_time'] = $data['start_time'];
+            $all_data['end_time'] = $data['end_time'];
+        }
+        if($data['search']){
+            $all_data['search'] = $data['search'];
+        }
+
+        $all_data['type'] = "sale";
+        $all = app(OrderService::class)->lists($all_data,['order_id'=>'desc'],1,$data['site_id']);
+
+        $all_data['order_status'] = "ADD_ORDER";
+        $d_all = app(OrderService::class)->lists($all_data,['order_id'=>'desc'],1,$data['site_id']);
+
+        $all_data['order_status'] = "CANCEL_ORDER";
+        $y_all = app(OrderService::class)->lists($all_data,['order_id'=>'desc'],1,$data['site_id']);
+        return success([
+            'all' => $all,
+            'd_shipped' => $d_all,
+            'y_cancel' => $y_all,
+        ]);
+    }
+
+
 
     public function lists()
     {
@@ -57,7 +94,7 @@ class Order extends BaseAdminController
             unset($data['search']);
         }
         $order = $this->_order(['create_time'], [], ['order_id' => 'desc']);
-
+        return success([$data,$order]);
         return app(OrderService::class)->lists($data,$order);
     }
 
@@ -221,6 +258,10 @@ class Order extends BaseAdminController
             'order_id.require'     => 'please_select_order',
             'paid_receipt.default' => [],
             'paid_remark.default'  => '',
+
+            'paid_type.require' => '请输入结款方式',
+            'shipment_type.require' => '请输入发货方式',
+            'logistics_code.default' => '',
         ]);
 
         return app(OrderService::class)->paid($data);

@@ -41,7 +41,8 @@ class Login extends BaseAdminController
     /**
      * 登录
      * @return Response
-     * login_type 1手机密码登录 2邮箱密码登录   3:手机验证码登录 4邮箱验证码登录 5 一键登录，不存在自动注册  6微信一键登录，不存在自动注册 7支付宝一键登录，不存在自动注册 8苹果账号一键登录
+     * login_type 1手机密码登录 2邮箱密码登录   3:手机验证码登录 4邮箱验证码登录 5 一键登录，不存在自动注册  
+     * 6微信一键登录，不存在自动注册 7支付宝一键登录，不存在自动注册 8苹果账号一键登录 
      */
     public function login($app_type)
     {
@@ -50,7 +51,7 @@ class Login extends BaseAdminController
             [ 'username', '' ],
             [ 'password', '' ],
             [ 'login_type', '0' ],
-            [ 'wx_openid', '0' ],
+            [ 'wx_openid', '' ],
             [ 'real_name', '' ],
             [ 'wx_image', '' ],
             [ 'user_id', '' ],
@@ -60,10 +61,11 @@ class Login extends BaseAdminController
             [ 'ail_code', '' ],
             [ 'wx_code', '' ],
             [ 'wx_ali_mobile', '' ],
+            [ 'mobile', '' ],
         ]);
         
         //获取微信登录信息
-        if($data['login_type'] == "6"){
+        if($data['login_type'] == "6" and $data['wx_openid'] == ""){
             if(!$data['wx_code']){
                 return fail('wx_code_error/缺少微信授权code');
             }
@@ -71,12 +73,11 @@ class Login extends BaseAdminController
             $data['wx_openid'] = $wx_info['openid'];
             $data['real_name'] = $wx_info['nickname'];
             $data['wx_image'] = $wx_info['headimgurl'];
-            // return success($wx_info);
         }
 
 
         //获取支付宝登录信息
-        if($data['login_type'] == "7"){
+        if($data['login_type'] == "7" and $data['user_id'] == ""){
             if(!$data['ail_code']){
                 return fail('ail_code_error/缺少支付宝授权code');
             }
@@ -84,9 +85,8 @@ class Login extends BaseAdminController
             $data['user_id'] = $ail_info['user_id'];
             $data['real_name'] = $ail_info['nick_name'];
             $data['ail_image'] = $ail_info['avatar'];
-            // return success($ail_info);
+        }  
 
-        }
         
         $login_type = strval($data['login_type']);
         if($login_type== "3" or $login_type == "4" or $login_type == "5" or $login_type == "6" or $login_type == "7" or $login_type == "8"){

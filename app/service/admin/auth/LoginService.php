@@ -242,40 +242,62 @@ class LoginService extends BaseAdminService
             $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
         }elseif ($login_type == "6"){
 
-            // $mobile = $data['wx_ali_mobile'];
-            // $mobile_infp = $user_oauth_model->where('mobile', $mobile)->findOrEmpty();
-            // if (!$mobile_infp->isEmpty()) return ['msg'=>'当前手机号已注册'];
-            
             $user_oauth = $user_oauth_model->where('wx_openid', $data['wx_openid'])->findOrEmpty();
             if ($user_oauth->isEmpty()){
-                try {
-                    $user_model       = new SysUser();
-                    $user = $user_model->create([
-                        'username'    => $data['wx_openid'],
-                        'real_name'   => $data['real_name'],
-                        'head_img'    => $data['wx_image'] ??'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
-                        'password'    => "",
-                        'last_ip'     => $this->request->ip(),
-                        'last_time'   => time(),
-                        'create_time' => time(),
-                        'login_count' => 0,
-                        'status'      => 1,
-                        'is_del'      => 0,
-                        'delete_time' => 0
-                    ]);
+                if($data['mobile'] != ""){
 
-                    $user_oauth_model->create([
-                        'uid'             => $user->uid,
-                        'invitation_uid'  => 0,
-                        'invitation_code' => '',
-                        'wx_openid'           => $data['wx_openid'],
-                        // 'mobile'           => $mobile,
-                    ]);
+                    $mobile_info = $user_oauth_model->where('mobile', $data['mobile'])->findOrEmpty();
+
+                    #手机号使用过，校验是否是手机号登录 未绑定过支付宝 微信
+                    if (!$mobile_info->isEmpty() and $mobile_info->ali_openid == "" and $mobile_info->wx_openid == "") return ['msg'=>'当前手机号已注册-手机号登录'];
+                    
+                    #判断当前手机号是否绑定了其他微信
+                    if (!$mobile_info->isEmpty() and $mobile_info->wx_openid != "") return ['msg'=>'当前手机号已绑定微信'];
+
+                    #判断当前手机号是否绑定了其他支付宝
+                    if (!$mobile_info->isEmpty() and $mobile_info->ali_openid != ""){
+                        $user_oauth_model->where('mobile', '=', $data['mobile'])->update([
+                            'wx_openid' => $data['wx_openid']
+                        ]);
+                    }
+
+                    # 手机号未使用过 直接绑定当前登录微信
+                    if($mobile_info->isEmpty()){
+                        $user_model       = new SysUser();
+                        $user = $user_model->create([
+                            'username'    => $data['wx_openid'],
+                            'real_name'   => $data['real_name'],
+                            'head_img'    => $data['wx_image'] ??'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                            'password'    => "",
+                            'last_ip'     => $this->request->ip(),
+                            'last_time'   => time(),
+                            'create_time' => time(),
+                            'login_count' => 0,
+                            'status'      => 1,
+                            'is_del'      => 0,
+                            'delete_time' => 0
+                        ]);
+
+                        $user_oauth_model->create([
+                            'uid'             => $user->uid,
+                            'invitation_uid'  => 0,
+                            'invitation_code' => '',
+                            'wx_openid'           => $data['wx_openid'],
+                            'mobile'           => $data['mobile'],
+                        ]);
+                        
+                    }
+
                     $user_oauth = $user_oauth_model->where('wx_openid', $data['wx_openid'])->findOrEmpty();
                     $user_service = new UserService();
                     $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
-                }catch (\Exception $e) {
-                    return  ['msg'=>'微信一键登录失败'.$e];
+                    
+                }else{
+                    return [
+                        "wx_openid" => $data['wx_openid'],
+                        "real_name" => $data['real_name'],
+                        "wx_image" => $data['wx_image'] ??'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                    ];
                 }
 
             }else{
@@ -283,40 +305,57 @@ class LoginService extends BaseAdminService
                 $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
             }
         }elseif ($login_type == "7") {
-            // $mobile = $data['wx_ali_mobile'];
-            // $mobile_infp = $user_oauth_model->where('mobile', $mobile)->findOrEmpty();
-            // if (!$mobile_infp->isEmpty()) return ['msg'=>'当前手机号已注册'];
-
+            
             $user_oauth = $user_oauth_model->where('ali_openid', $data['user_id'])->findOrEmpty();
             if ($user_oauth->isEmpty()) {
-                try {
-                    $user_model = new SysUser();
-                    $user = $user_model->create([
-                        'username' => $data['user_id'],
-                        'real_name' => $data['real_name'],
-                        'head_img' => $data['ail_image'] ?? 'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
-                        'password' => "",
-                        'last_ip' => $this->request->ip(),
-                        'last_time' => time(),
-                        'create_time' => time(),
-                        'login_count' => 0,
-                        'status' => 1,
-                        'is_del' => 0,
-                        'delete_time' => 0
-                    ]);
+                if($data['mobile'] != ""){
+                    $mobile_info = $user_oauth_model->where('mobile', $data['mobile'])->findOrEmpty();
+                    if (!$mobile_info->isEmpty() and $mobile_info->ali_openid == "" and $mobile_info->wx_openid == "") return ['msg'=>'当前手机号已注册-手机号登录'];
 
-                    $user_oauth_model->create([
-                        'uid' => $user->uid,
-                        'invitation_uid' => 0,
-                        'invitation_code' => '',
-                        'ali_openid' => $data['user_id'],
-                        // 'mobile' => $mobile,
-                    ]);
+                    #判断当前手机号是否绑定了其他支付宝
+                    if (!$mobile_info->isEmpty() and $mobile_info->ali_openid != "") return ['msg'=>'当前手机号已绑定支付宝'];
+
+                    #判断当前手机号是否绑定了其他微信
+                    if (!$mobile_info->isEmpty() and $mobile_info->wx_openid != ""){
+                        $user_oauth_model->where('mobile', '=', $data['mobile'])->update([
+                            'ali_openid' => $data['user_id']
+                        ]);
+                    }
+                    
+                    if($mobile_info->isEmpty()){
+                        $user_model = new SysUser();
+                        $user = $user_model->create([
+                            'username' => $data['user_id'],
+                            'real_name' => $data['real_name'],
+                            'head_img' => $data['ail_image'] ?? 'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                            'password' => "",
+                            'last_ip' => $this->request->ip(),
+                            'last_time' => time(),
+                            'create_time' => time(),
+                            'login_count' => 0,
+                            'status' => 1,
+                            'is_del' => 0,
+                            'delete_time' => 0
+                        ]);
+
+                        $user_oauth_model->create([
+                            'uid' => $user->uid,
+                            'invitation_uid' => 0,
+                            'invitation_code' => '',
+                            'ali_openid' => $data['user_id'],
+                            'mobile' => $data['mobile'],
+                        ]);
+                        
+                    }
                     $user_oauth = $user_oauth_model->where('ali_openid', $data['user_id'])->findOrEmpty();
                     $user_service = new UserService();
                     $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
-                } catch (\Exception $e) {
-                    return ['msg' => '微信一键登录失败' . $e];
+                }else{
+                    return [
+                        "user_id" => $data['user_id'],
+                        "real_name" => $data['real_name'],
+                        "ail_image" => $data['ail_image'] ?? 'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                    ];
                 }
 
             } else {

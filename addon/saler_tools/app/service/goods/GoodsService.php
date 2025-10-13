@@ -279,11 +279,13 @@ class GoodsService extends BaseAdminService
         }else{
             $goods['customer_type_name'] = '其他';
         }
-        
-        $customer = new CustomerModel();
-        $data_info = $customer->where('id', '=', $goods['customer_id'])->find()->toArray();
-        $goods['customer_name'] = $data_info['customer_name'];
-
+        if($goods['customer_id']){
+            $customer = new CustomerModel();
+            $data_info = $customer->where('id', '=', $goods['customer_id'])->find()->toArray();
+            $goods['customer_name'] = $data_info['customer_name'];
+        }else{
+            $goods['customer_name'] = '';
+        }
         $goods['detail_image'] = json_decode($goods['detail_image'],true);
         return success($goods);
         // $uid = $goods['create_uid'];

@@ -41,12 +41,14 @@ class ShopService extends BaseAdminService
 
     }
 
-
     public function detail()
     {
         $shop = $this->info();
         if (empty($shop['site_id'])) {
             return fail('shop_not_exist');
+        }
+        if($shop['certificate_images']){
+            $shop['certificate_images'] = json_decode($shop['certificate_images'][0], true);
         }
         return success($shop);
     }
@@ -67,7 +69,7 @@ class ShopService extends BaseAdminService
     public function edit($data)
     {
         $shop = (new ShopModel())->whereIn('site_id', $this->site_id)->findOrEmpty();
-        $shop->allowField(['shop_name', 'logo', 'share_poster', 'desc', 'tel', 'mobile', 'address', 'banner_list'])->save($data);
+        $shop->allowField(['shop_name', 'logo', 'share_poster', 'desc', 'tel', 'mobile', 'address', 'banner_list', 'certificate_images', 'country_code', 'currency_code'])->save($data);
         $key = app()->siteCache->shop_info_key;
         Cache::delete($key);
         return success();

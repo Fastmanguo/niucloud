@@ -43,7 +43,15 @@ class Shop extends BaseAdminController
             'address.default'      => '',
             'coordinates.default'  => '',
             'banner_list.default'  => [],
+
+            "certificate_images.default"       => '',
+            'country_code.require'     => '',
+            'currency_code.require'    => '',
+
         ]);
+        if($data['certificate_images']){
+            $data['certificate_images'] = json_encode($data['certificate_images']);
+        }
         return app(ShopService::class)->edit($data);
     }
 
@@ -87,8 +95,15 @@ class Shop extends BaseAdminController
             'address.require'          => 'input.shop_address.tips',
             'currency_code.require'    => 'input.currency_code.tips',
             'country_code.require'     => 'input.country_code.tips',
+
+            "logo.default"        => '',
+            "certificate_images.default"       => '',
+            "desc.default"        => '',
         ]);
 
+        if($data['certificate_images']){
+            $data['certificate_images'] = json_encode($data['certificate_images']);
+        }
         return app(ShopService::class)->apply($data);
 
     }
