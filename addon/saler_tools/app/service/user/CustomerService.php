@@ -14,6 +14,7 @@ use app\model\member\MemberAddress;
 use app\model\member\CustomerPayment;
 use app\model\member\CustomerReceipt;
 use app\model\member\CustomerModel;
+use app\model\member\ComplaintModel;
 use app\model\sys\SysUser;
 
 /**
@@ -630,6 +631,180 @@ class CustomerService extends BaseAdminService
         
         return success($result);
     }
+
+
+     /**
+      * 物流查询
+      */
+    public function logisticsFind($code){
+        // 快递鸟API配置信息
+        $user_id = "1899167";
+        // 从文件中读取api_key
+        $api_key_file = __DIR__ . '/api_key.txt';
+        $api_key = file_exists($api_key_file) ? trim(file_get_contents($api_key_file)) : '';
+        $api_url = "http://api.kdniao.com/Ebusiness/EbusinessOrderHandle.aspx";
+        
+        // 识别快递公司
+        $shipper_code = $this->identifyExpressCompany($code,$user_id,$api_key,$api_url);
+        
+        // 请求参数
+        $request_data = [
+            'OrderCode' => '', // 订单编号（可选）
+            'ShipperCode' => $shipper_code, // 快递公司编码（可选，为空时自动识别）
+            'LogisticCode' => $code, // 物流单号
+        ];
+        
+        // 构建请求数据
+        $data_sign = json_encode($request_data, JSON_UNESCAPED_UNICODE);
+        $data_sign = urlencode($data_sign);
+        
+        // 生成签名
+        $signature = base64_encode(md5($data_sign . $api_key));
+        
+        // 请求参数
+        $post_data = [
+            'RequestData' => $data_sign,
+            'EBusinessID' => $user_id,
+            'RequestType' => '8003', 
+            'DataSign' => $signature,
+            'DataType' => '2' // 2: JSON格式
+        ];
+        
+        try {
+            // 发送HTTP请求
+            $response = $this->httpPost($api_url, $post_data);
+            if ($response === false) {
+                return fail('网络请求失败');
+            }
+
+            $result = json_decode($response, true);
+            if (!$result) {
+                return fail('响应数据解析失败');
+            }
+            
+            // 检查API返回状态
+            if (isset($result['Success']) && $result['Success'] === false) {
+                return fail($result['Reason'] ?? '查询失败');
+            }
+            
+            // 处理成功响应
+            $logistics_info = [
+                'logistic_code' => $code,
+                'shipper_code' => $result['ShipperCode'] ?? '',
+                'shipper_name' => $result['ShipperName'] ?? '',
+                'state' => $result['State'] ?? 0,
+                'state_text' => $this->getStateText($result['State'] ?? 0),
+                'traces' => $result['Traces'] ?? [],
+                'location' => $result['Location'] ?? '',
+                'accept_time' => $result['AcceptTime'] ?? '',
+                'accept_station' => $result['AcceptStation'] ?? '',
+                'update_time' => time(),
+                "Coordinates"=>$result['Coordinates'] ?? '',
+            ];
+            
+            return success($logistics_info);
+            
+        } catch (\Exception $e) {
+            return fail('查询异常：' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * 识别快递公司编码
+     */
+    private function identifyExpressCompany($code,$user_id,$api_key,$api_url) {
+        // 构建识别请求参数（单号识别接口 2002）
+        $request_data = [
+            'LogisticCode' => $code
+        ];
+
+        // 构建请求数据并签名（与本类其它请求保持一致的签名方式）
+        $raw_json = json_encode($request_data, JSON_UNESCAPED_UNICODE);
+        $request_data_encoded = urlencode($raw_json);
+        $signature = base64_encode(md5($request_data_encoded . $api_key));
+
+        $post_data = [
+            'RequestData' => $request_data_encoded,
+            'EBusinessID' => $user_id,
+            'RequestType' => '2002', // 单号识别
+            'DataSign' => $signature,
+            'DataType' => '2'
+        ];
+
+        $response = $this->httpPost($api_url, $post_data);
+        if ($response === false) return '';
+
+        $result = json_decode($response, true);
+        if (!$result || (isset($result['Success']) && $result['Success'] === false)) return '';
+
+        // 返回命中最高的快递公司编码
+        if (!empty($result['Shippers']) && is_array($result['Shippers'])) {
+            $first = $result['Shippers'][0] ?? [];
+            return $first['ShipperCode'] ?? '';
+        }
+
+        return '';
+    }
+    
+    /**
+     * 获取物流状态文本
+     */
+    private function getStateText($state) {
+        $state_map = [
+            0 => '暂无轨迹',
+            1 => '已揽收',
+            2 => '在途中',
+            3 => '已签收',
+            4 => '问题件',
+            5 => '已退回',
+            6 => '转投',
+            7 => '已拒收'
+        ];
+        
+        return $state_map[$state] ?? '未知状态';
+    }
+    
+    /**
+     * 发送HTTP POST请求
+     */
+    private function httpPost($url, $data) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded; charset=UTF-8'
+        ]);
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($http_code !== 200) {
+            return false;
+        }
+        
+        return $response;
+    }
+
+     /**
+      * 添加客户投诉商品
+      */
+    public function ComplaintAdd($data){
+        $data['create_time'] = time();
+        return success($data);
+        $res = (new ComplaintModel())->save($data);
+        if($res){
+            return success('添加成功');
+        }else{
+            return fail('添加失败');
+        }
+    }
+
 
 
 
