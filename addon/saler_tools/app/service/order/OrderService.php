@@ -400,6 +400,7 @@ class OrderService extends BaseAdminService
             'payment_receipt'       => [],
             "category_id"           => $goods['category_id'],
             "customer_id"           => $goods['customer_id'],
+            "goods_code"           => $goods['goods_code'],
             "goods_attr_list"       => $goods_attr_list,
             'additional_cost'       => array_map(function ($item) {
                 return [

@@ -646,6 +646,13 @@ class CustomerService extends BaseAdminService
         
         // 识别快递公司
         $shipper_code = $this->identifyExpressCompany($code,$user_id,$api_key,$api_url);
+        $shipper_name = "";
+        if($shipper_code){
+            $shipper_name = $shipper_code["name"];
+            $shipper_code = $shipper_code["code"];
+        }else{
+            return fail('未识别到快递公司');
+        }
         
         // 请求参数
         $request_data = [
@@ -687,11 +694,12 @@ class CustomerService extends BaseAdminService
                 return fail($result['Reason'] ?? '查询失败');
             }
             
+            return success($result);
             // 处理成功响应
             $logistics_info = [
                 'logistic_code' => $code,
-                'shipper_code' => $result['ShipperCode'] ?? '',
-                'shipper_name' => $result['ShipperName'] ?? '',
+                'shipper_code' => $shipper_code,
+                'shipper_name' => $shipper_name,
                 'state' => $result['State'] ?? 0,
                 'state_text' => $this->getStateText($result['State'] ?? 0),
                 'traces' => $result['Traces'] ?? [],
@@ -700,6 +708,8 @@ class CustomerService extends BaseAdminService
                 'accept_station' => $result['AcceptStation'] ?? '',
                 'update_time' => time(),
                 "Coordinates"=>$result['Coordinates'] ?? '',
+                "ReceiverCityLatAndLng"=>$result['ReceiverCityLatAndLng'] ?? '',
+                "SenderCityLatAndLng"=>$result['SenderCityLatAndLng'] ?? '',
             ];
             
             return success($logistics_info);
@@ -708,7 +718,7 @@ class CustomerService extends BaseAdminService
             return fail('查询异常：' . $e->getMessage());
         }
     }
-    
+
     /**
      * 识别快递公司编码
      */
@@ -740,7 +750,7 @@ class CustomerService extends BaseAdminService
         // 返回命中最高的快递公司编码
         if (!empty($result['Shippers']) && is_array($result['Shippers'])) {
             $first = $result['Shippers'][0] ?? [];
-            return $first['ShipperCode'] ?? '';
+            return ["code"=>$first['ShipperCode'],"name"=>$first['ShipperName']];
         }
 
         return '';

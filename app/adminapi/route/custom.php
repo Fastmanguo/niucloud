@@ -133,6 +133,7 @@ Route::group('saler_tools/customer', function () {
     Route::post('logistics_find', 'addon\saler_tools\app\adminapi\controller\Customer@logisticsFind');
     Route::post('logistics_track', 'addon\saler_tools\app\adminapi\controller\Customer@logisticsTrack');
     Route::post('to_price', 'addon\saler_tools\app\adminapi\controller\Goods@toPrice');
+    Route::post('complaint_add', 'addon\saler_tools\app\adminapi\controller\Customer@ComplaintAdd');
 });
 
 
