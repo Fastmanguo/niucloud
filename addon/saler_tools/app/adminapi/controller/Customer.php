@@ -261,15 +261,15 @@ class Customer extends BaseController
         return (new CustomerService())->customerTj($data);
     }
 
-    /**
-     * 物流地图轨迹查询
-     */
-    public function logisticsTrack(){
-        $data = $this->_vali([
-            'code.require'   => "请输入物流单号",
-        ]);
-        return (new CustomerService())->logisticsTrack($data['code']);
-    }
+    // /**
+    //  * 物流地图轨迹查询
+    //  */
+    // public function logisticsTrack(){
+    //     $data = $this->_vali([
+    //         'code.require'   => "请输入物流单号",
+    //     ]);
+    //     return (new CustomerService())->logisticsTrack($data['code']);
+    // }
 
     /**
      * 物流在途监控信息
@@ -279,5 +279,19 @@ class Customer extends BaseController
             'code.require'   => "请输入物流单号",
         ]);
         return (new CustomerService())->logisticsFind($data['code']);
+    }
+
+    /**
+     * 添加客户投诉商品
+     */
+    public function complaintAdd(){
+        $data = $this->_vali([
+            "uid.require"   => "请输入用户ID",
+            "goods_id.require"   => "请输入商品ID",
+            "complaint_type.require"   => "请输入投诉类型",
+            "complaint_images.require"   => "请上传投诉图片",
+        ]);
+        $data['complaint_images'] = json_encode($data['complaint_images']);
+        return (new CustomerService())->ComplaintAdd($data);
     }
 }
