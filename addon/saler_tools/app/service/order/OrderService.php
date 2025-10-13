@@ -322,8 +322,9 @@ class OrderService extends BaseAdminService
             $data['create_uid']   = $this->uid;
             $data['order_status'] = self::ADD_ORDER;
             $data['create_time']  = date('Y-m-d H:i:s');
+            $data['transaction_time']  = date('Y-m-d');
             $data['is_delivery']  = 0;// 调整待发货
-            $data['order_type']   = 'sale';
+            // $data['order_type']   = 'sale';
 
             // 填写店铺货币类型
             $shop                  = (new ShopService())->info();
@@ -681,8 +682,9 @@ class OrderService extends BaseAdminService
         $data['is_paid']   = 1;
         $data['paid_uid']  = $this->uid;
         $data['paid_time'] = date('Y-m-d H:i:s');
+        $data['order_status'] = self::FINISH_ORDER;
 
-        $order->allowField(['paid_receipt', 'paid_remark', 'paid_time', 'paid_uid', 'is_paid', 'paid_type', 'shipment_type', 'logistics_code'])->save($data);
+        $order->allowField(['order_status','paid_receipt', 'paid_remark', 'paid_time', 'paid_uid', 'is_paid', 'paid_type', 'shipment_type', 'logistics_code'])->save($data);
 
         return success();
     }
