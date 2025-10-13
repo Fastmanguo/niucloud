@@ -130,6 +130,8 @@ Route::group('saler_tools/customer', function () {
     Route::post('customer_details', 'addon\saler_tools\app\adminapi\controller\Customer@customerDetails');
     Route::post('get_code', 'addon\saler_tools\app\adminapi\controller\Customer@getCode');
     Route::post('customer_tj', 'addon\saler_tools\app\adminapi\controller\Customer@customerTj');
+    Route::post('logistics_find', 'addon\saler_tools\app\adminapi\controller\Customer@logisticsFind');
+    Route::post('logistics_track', 'addon\saler_tools\app\adminapi\controller\Customer@logisticsTrack');
     Route::post('to_price', 'addon\saler_tools\app\adminapi\controller\Goods@toPrice');
 });
 
