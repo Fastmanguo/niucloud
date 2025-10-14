@@ -11,6 +11,7 @@ namespace addon\saler_tools\app\service;
 use addon\saler_tools\app\common\BaseAdminService;
 use addon\saler_tools\app\common\BaseModel;
 use addon\saler_tools\app\model\Collect as CollectModel;
+use addon\saler_tools\app\model\Goods as GoodsModel;
 use core\exception\AdminException;
 use think\Model;
 
@@ -38,11 +39,14 @@ class CollectService extends BaseAdminService
     private function _onlineExpoGoods($model, $params)
     {
         $model = $model->withJoin('goodsInfo', 'INNER')
-            ->where('is_sale', $params['is_sale'] ?? 1)
             ->hidden(['goodsInfo']);
 
+        if (isset($params['is_sale']) && $params['is_sale'] !== '') {
+            $model = $model->where('is_sale', $params['is_sale']);
+        }
+
         if (!empty($params['search'])) {
-            $model = $model->whereLike('goods_name', "%{$params['search']}%");
+            $model = $model->whereLike('goods_name|goods_desc|remark|goods_code', "%{$params['search']}%");
         }
 
         return $model;
@@ -65,7 +69,33 @@ class CollectService extends BaseAdminService
 
         $model = $this->$bind_fun($model, $params);
 
-        return success($this->pageQuery($model));
+        // 分页数据
+        $result = $this->pageQuery($model);
+
+        // 统计全部收藏数量（当前站点、当前用户、当前类型）
+        $all_num = (new CollectModel())
+            ->where('type', $type_code)
+            ->where('site_id', $this->site_id)
+            ->where('uid', $this->uid)
+            ->count();
+
+        // 统计失效数量（收藏中下架商品数量）
+        $collectTable = (new CollectModel())->getName();
+        $goodsTable = (new GoodsModel())->getName();
+        $failure_num = (new CollectModel())
+            ->alias('c')
+            ->join([$goodsTable => 'g'], 'g.goods_id = c.relate_id')
+            ->where('c.type', $type_code)
+            ->where('c.site_id', $this->site_id)
+            ->where('c.uid', $this->uid)
+            ->where('g.is_sale', 0)
+            ->count();
+
+        // 附加统计数据到返回体
+        $result['all_num'] = $all_num;
+        $result['failure_num'] = $failure_num;
+
+        return success($result);
 
     }
 

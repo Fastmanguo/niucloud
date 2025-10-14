@@ -91,11 +91,18 @@ class Goods extends BaseAdminController
         $data = $this->_vali([
             'price.query'         => '请输入要转换的金额',
             'currency_code.query'          => '请输入当前货币代码',
-            'to_currency_code.query'    => '请输入目标货币代码',
+            // 'to_currency_code.query'    => '请输入目标货币代码',
             
         ]);
-        return app(GoodsService::class)->convertCurrency($data['price'],$data['currency_code'],$data['to_currency_code']);
+        $result_list = [];
+        $supported_currencies = ['USD','CNY','EUR','JPY','GBP','HKD','KRW','SGD','AUD','CAD' ];
+        foreach($supported_currencies as $currency => $value){
+            $result = app(GoodsService::class)->convertCurrency($data['price'],$data['currency_code'],$value);
+            $result_list[] = $result;
+        }
+        return success($result_list);
     }
+
 
 
     /**
@@ -395,6 +402,18 @@ class Goods extends BaseAdminController
         ], 'delete');
 
         return app(GoodsService::class)->batchDel($data['goods_ids']);
+    }
+
+    /**
+     * 统计仓库内商品金额
+     */
+    public function getCkTypePrice()
+    {
+        $data = $this->_vali([
+            'site_id.query'        => '请输入店铺id',
+            "uid.query"            => '请输入用户id',
+        ]);
+        return app(GoodsService::class)->getCkTypePrice($data);
     }
 
 

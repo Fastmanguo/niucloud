@@ -438,7 +438,7 @@ class GoodsService extends BaseAdminService
             ]
         ];
 
-
+        
         // 检查汇率是否存在
         if (!isset($exchange_rates[$from_currency]) || !isset($exchange_rates[$from_currency][$to_currency])) {
             return 0;
@@ -449,7 +449,14 @@ class GoodsService extends BaseAdminService
         // 格式化输出
         $formatted_result = number_format($result, 2);
 
-        return $formatted_result;
+        $result_array = [
+            'price' => $amount,
+            'to_price' => $formatted_result,
+            'currency' => $from_currency,
+            'to_currency' => $to_currency,
+            'rate' => $rate,
+        ];
+        return $result_array;
     }
 
     public function add($data)
@@ -838,6 +845,64 @@ class GoodsService extends BaseAdminService
 
         return success();
 
+    }
+
+    /**
+     * 统计仓库内商品金额
+     * 
+     */
+    public function getCkTypePrice($data)
+    {
+        $model = new GoodsModel();
+        $where = [
+            ['site_id', '=', $data['site_id']],
+            ["create_uid", '=', $data['uid']],
+            ['deleted_time', '=', 0],
+        ];
+        $list = $model->where($where)->select()->toArray();
+        
+        $price_list = [];
+        $total_cost_list = [];
+        $jm_price_list = [];
+        $zy_total_cost_list = [];
+        foreach($list as $key => $val){
+
+            if($val['goods_attr_list']){
+                $goods_attr_list = json_decode($val['goods_attr_list'], true);
+                foreach($goods_attr_list as $k => $v){
+                    $price_list[] = $v['goods_num'] * $v['price'];
+                }
+            
+            if($val['goods_attribute'] == "own_goods"){
+                $goods_attr_list = json_decode($val['goods_attr_list'], true);
+                foreach($goods_attr_list as $k => $v){
+                    $total_cost_list[] = $v['goods_num'] * $v['total_cost'];
+                }
+            }
+            
+            if($val['goods_attribute'] == "consignment_goods"){
+                $goods_attr_list = json_decode($val['goods_attr_list'], true);
+                foreach($goods_attr_list as $k => $v){
+                    $jm_price_list[] = $v['goods_num'] * $v['price'];
+                }
+            }
+
+            if($val['goods_attribute'] == "pawned_goods"){
+                $goods_attr_list = json_decode($val['goods_attr_list'], true);
+                foreach($goods_attr_list as $k => $v){
+                    $zy_total_cost_list[] = $v['goods_num'] * $v['total_cost'];
+                }
+            }
+
+            }
+        }
+
+        return success([
+            'price' => array_sum($price_list),
+            'total_cost_price' => array_sum($total_cost_list),
+            'jm_price' => array_sum($jm_price_list),
+            'zy_total_cost_price' => array_sum($zy_total_cost_list),
+        ]);
     }
 
 }

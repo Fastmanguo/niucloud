@@ -261,15 +261,15 @@ class Customer extends BaseController
         return (new CustomerService())->customerTj($data);
     }
 
-    // /**
-    //  * 物流地图轨迹查询
-    //  */
-    // public function logisticsTrack(){
-    //     $data = $this->_vali([
-    //         'code.require'   => "请输入物流单号",
-    //     ]);
-    //     return (new CustomerService())->logisticsTrack($data['code']);
-    // }
+    /**
+     * 物流在途监控信息（国际版本）
+     */
+    public function logisticsTrack(){
+        $data = $this->_vali([
+            'code.require'   => "请输入物流单号",
+        ]);
+        return (new CustomerService())->logisticsTrack($data['code']);
+    }
 
     /**
      * 物流在途监控信息

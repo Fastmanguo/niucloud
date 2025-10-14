@@ -32,7 +32,7 @@ class Collect extends BaseModel
      */
     public function goodsInfo()
     {
-        return $this->hasOne(Goods::class, 'goods_id', 'relate_id')->bind(['goods_cover','goods_name','peer_price','currency_code']);
+        return $this->hasOne(Goods::class, 'goods_id', 'relate_id')->bind(['goods_cover','goods_name','peer_price','currency_code','condition']);
     }
 
 }

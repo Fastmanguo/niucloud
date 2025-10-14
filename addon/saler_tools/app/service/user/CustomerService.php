@@ -632,6 +632,95 @@ class CustomerService extends BaseAdminService
         return success($result);
     }
 
+    /**
+     * 物流在途监控信息（国际版本）
+     */
+    public function logisticsTrack($code){
+        // 快递鸟API配置信息
+        $user_id = "1899167";
+        // 从文件中读取api_key
+        $api_key_file = __DIR__ . '/api_key.txt';
+        $api_key = file_exists($api_key_file) ? trim(file_get_contents($api_key_file)) : '';
+        $api_url = "https://globapi.kdniao.com/api/track/packet";
+        
+        // 识别快递公司
+        // $shipper_code = $this->identifyExpressCompany($code,$user_id,$api_key,$api_url);
+        // $shipper_name = "";
+        // if($shipper_code){
+        //     $shipper_name = $shipper_code["name"];
+        //     $shipper_code = $shipper_code["code"];
+        // }else{
+        //     return fail('未识别到快递公司');
+        // }
+
+        $shipper_code = $code;
+        $shipper_name = "FEDEX";
+        // 请求参数
+        $request_data = [
+            'OrderCode' => '', // 订单编号（可选）
+            'ShipperCode' => $shipper_code, // 快递公司编码（可选，为空时自动识别）
+            'LogisticCode' => $code, // 物流单号
+        ];
+        
+        // 构建请求数据
+        $data_sign = json_encode($request_data, JSON_UNESCAPED_UNICODE);
+        $data_sign = urlencode($data_sign);
+        
+        // 生成签名
+        $signature = base64_encode(md5($data_sign . $api_key));
+        
+        // 请求参数
+        $post_data = [
+            'RequestData' => $data_sign,
+            'EBusinessID' => $user_id,
+            'RequestType' => '7101 ', 
+            'DataSign' => $signature,
+            'DataType' => '2' // 2: JSON格式
+        ];
+
+        try {
+            // 发送HTTP请求
+            $response = $this->httpPost($api_url, $post_data);
+            if ($response === false) {
+                return fail('网络请求失败');
+            }
+
+            $result = json_decode($response, true);
+            if (!$result) {
+                return fail('响应数据解析失败');
+            }
+            
+            // 检查API返回状态
+            if (isset($result['Success']) && $result['Success'] === false) {
+                return fail($result['Reason'] ?? '查询失败');
+            }
+            
+            return success($result);
+            // 处理成功响应
+            $logistics_info = [
+                'logistic_code' => $code,
+                'shipper_code' => $shipper_code,
+                'shipper_name' => $shipper_name,
+                'state' => $result['State'] ?? 0,
+                'state_text' => $this->getStateText($result['State'] ?? 0),
+                'traces' => $result['Traces'] ?? [],
+                'location' => $result['Location'] ?? '',
+                'accept_time' => $result['AcceptTime'] ?? '',
+                'accept_station' => $result['AcceptStation'] ?? '',
+                'update_time' => time(),
+                "Coordinates"=>$result['Coordinates'] ?? '',
+                "ReceiverCityLatAndLng"=>$result['ReceiverCityLatAndLng'] ?? '',
+                "SenderCityLatAndLng"=>$result['SenderCityLatAndLng'] ?? '',
+            ];
+            
+            return success($logistics_info);
+            
+        } catch (\Exception $e) {
+            return fail('查询异常：' . $e->getMessage());
+        }
+
+        
+    }
 
      /**
       * 物流查询
@@ -642,7 +731,7 @@ class CustomerService extends BaseAdminService
         // 从文件中读取api_key
         $api_key_file = __DIR__ . '/api_key.txt';
         $api_key = file_exists($api_key_file) ? trim(file_get_contents($api_key_file)) : '';
-        $api_url = "http://api.kdniao.com/Ebusiness/EbusinessOrderHandle.aspx";
+        $api_url = "https://api.kdniao.com/api/dist";
         
         // 识别快递公司
         $shipper_code = $this->identifyExpressCompany($code,$user_id,$api_key,$api_url);
@@ -694,7 +783,7 @@ class CustomerService extends BaseAdminService
                 return fail($result['Reason'] ?? '查询失败');
             }
             
-            return success($result);
+            
             // 处理成功响应
             $logistics_info = [
                 'logistic_code' => $code,
