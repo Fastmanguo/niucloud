@@ -465,3 +465,14 @@ Route::group('goods', function () {
     Route::get('order/get_count', 'addon\saler_tools\app\adminapi\controller\Order@getCount');
 });
 
+// 支付宝支付路由
+Route::group('saler_tools/pay', function () {
+    Route::group('alipay', function () {
+        Route::post('web', 'addon\saler_tools\app\adminapi\controller\SalerToolsPay@alipayWeb');
+        Route::post('wap', 'addon\saler_tools\app\adminapi\controller\SalerToolsPay@alipayWap');
+        Route::post('app', 'addon\saler_tools\app\adminapi\controller\SalerToolsPay@alipayApp');
+        Route::post('notify', 'addon\saler_tools\app\adminapi\controller\SalerToolsPay@alipayNotify');
+        Route::get('return', 'addon\saler_tools\app\adminapi\controller\SalerToolsPay@alipayReturn');
+    });
+});
+
