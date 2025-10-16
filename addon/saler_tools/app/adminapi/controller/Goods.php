@@ -103,6 +103,16 @@ class Goods extends BaseAdminController
         return success($result_list);
     }
 
+    /**
+     * 根据规格内信息进行货币转换
+     */
+    public function toPriceDetails(){
+        $data = $this->_vali([
+            'goods_id.query'         => '请输入要转换的商品ID',
+        ]);
+        return app(GoodsService::class)->toPriceDetails($data['goods_id']);
+    }
+
 
 
     /**

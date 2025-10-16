@@ -88,7 +88,7 @@ class SalerToolsPay extends BaseAdminController
             $response = YansongdaPay::alipay($config)->web($order);
             return response($response->getBody()->getContents());
         } catch (\Exception $e) {
-            return error($e->getMessage());
+            return fail($e->getMessage());
         }
     }
 
@@ -109,7 +109,7 @@ class SalerToolsPay extends BaseAdminController
             $response = YansongdaPay::alipay($config)->wap($order);
             return response($response->getBody()->getContents());
         } catch (\Exception $e) {
-            return error($e->getMessage());
+            return fail($e->getMessage());
         }
     }
 
@@ -130,7 +130,7 @@ class SalerToolsPay extends BaseAdminController
             $response = YansongdaPay::alipay($config)->app($order);
             return success($response);
         } catch (\Exception $e) {
-            return error($e->getMessage());
+            return fail($e->getMessage());
         }
     }
 
@@ -169,7 +169,7 @@ class SalerToolsPay extends BaseAdminController
                 'error' => $e->getMessage(),
                 'data' => request()->post()
             ]);
-            return error($e->getMessage());
+            return fail($e->getMessage());
         }
     }
 

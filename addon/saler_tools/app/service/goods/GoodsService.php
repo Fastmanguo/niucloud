@@ -288,72 +288,58 @@ class GoodsService extends BaseAdminService
         }
         $goods['detail_image'] = json_decode($goods['detail_image'],true);
         return success($goods);
-        // $uid = $goods['create_uid'];
-        // $site_id = $goods['site_id'];
-        // $goods_id = $goods['goods_id'];
-
-        // // 查询该商品的收藏信息
-        // $collectModel = new Collect();
-        // $collectInfo = $collectModel->where('relate_id', $goods_id)
-        //     ->where('site_id', $site_id)
-        //     ->where('uid', $uid)
-        //     ->findOrEmpty();
         
-        // if($collectInfo->isEmpty()){
-        //     $goods['is_collected'] = 0;
-        // }else{
-        //     $goods['is_collected'] = 1;
-        // }
-        
-        // $money = $goods['peer_price'];
-        // $currency_code = $goods['currency_code'];
-
-        // $money_peer_price = [
-        //     ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($money,$currency_code,'CNY')],
-        //     ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($money,$currency_code,'USD')],
-        //     ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($money,$currency_code,'EUR')],
-        //     ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($money,$currency_code,'JPY')],
-        //     ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($money,$currency_code,'GBP')],
-        //     ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($money,$currency_code,'HKD')],
-        //     ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($money,$currency_code,'KRW')],
-        //     ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($money,$currency_code,'SGD')],
-        //     ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($money,$currency_code,'AUD')],
-        //     ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($money,$currency_code,'CAD')]
-        // ];
-
-        // $money_peer = [
-        //     ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'CNY')],
-        //     ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'USD')],
-        //     ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'EUR')],
-        //     ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'JPY')],
-        //     ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'GBP')],
-        //     ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'HKD')],
-        //     ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'KRW')],
-        //     ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'SGD')],
-        //     ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'AUD')],
-        //     ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($goods['price'],$currency_code,'CAD')]
-        // ];
-
-        // $cost_one = $goods['total_cost']/$goods['stock'];
-        // $goods['cost_one'] = round($cost_one,2);
-        // $total_cost = [
-        //     ['address'=>'CN','id'=>'CNY','name'=>'人民币',"monery"=>$this->convertCurrency($cost_one,$currency_code,'CNY')],
-        //     ['address'=>'US','id'=>'USD','name'=>'美元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'USD')],
-        //     ['address'=>'EU','id'=>'EUR','name'=>'欧元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'EUR')],
-        //     ['address'=>'JP','id'=>'JPY','name'=>'日元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'JPY')],
-        //     ['address'=>'GB','id'=>'GBP','name'=>'英镑',"monery"=>$this->convertCurrency($cost_one,$currency_code,'GBP')],
-        //     ['address'=>'HK','id'=>'HKD','name'=>'港币',"monery"=>$this->convertCurrency($cost_one,$currency_code,'HKD')],
-        //     ['address'=>'KR','id'=>'KRW','name'=>'韩元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'KRW')],
-        //     ['address'=>'SG','id'=>'SGD','name'=>'新加坡元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'SGD')],
-        //     ['address'=>'AU','id'=>'AUD','name'=>'澳元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'AUD')],
-        //     ['address'=>'CA','id'=>'CAD','name'=>'加拿大元',"monery"=>$this->convertCurrency($cost_one,$currency_code,'CAD')]
-        // ];
-
-        // $goods['money_peer_price'] = $money_peer_price;
-        // $goods['money_peer'] = $money_peer;
-        // $goods['money_total_cost'] = $total_cost;
-        // return success($goods);
     }
+
+    /**
+     * 根据规格内信息进行货币转换
+     */
+    public function toPriceDetails($goods_id){
+        
+        $model = new GoodsModel();
+        $goods = $model->where('goods_id', $goods_id)
+            ->select()
+            ->toArray();
+        if($goods[0]['goods_attr_list']){
+            $goods_attr_list = json_decode($goods[0]['goods_attr_list'],true);
+        }
+        $currency_code = $goods[0]['currency_code'];
+        $supported_currencies = ['USD','CNY','EUR','JPY','GBP','HKD','KRW','SGD','AUD','CAD' ];
+
+        foreach($goods_attr_list as $key => $value){
+            $cur_code_list = [];
+            foreach($supported_currencies as $k => $v){
+                $m_result = [];
+                $price_result = $this->convertCurrency($value['price'],$currency_code,$v);
+                $m_result['rate'] = $price_result['rate'];
+                $m_result['currency'] = $price_result['currency'];
+                $m_result['to_currency'] = $price_result['to_currency'];
+                $m_result['price'] = $price_result['price'];
+                $m_result['to_price'] = $price_result['to_price'];
+
+                $price_result = $this->convertCurrency($value['total_cost'],$currency_code,$v);
+                $m_result['total_cost'] = $price_result['price'];
+                $m_result['to_total_cost'] = $price_result['to_price'];
+
+                $price_result = $this->convertCurrency($value['peer_price'],$currency_code,$v);
+                $m_result['peer_price'] = $price_result['price'];
+                $m_result['to_peer_price'] = $price_result['to_price'];
+                $cur_code_list[] = $m_result;
+            }
+            
+            $goods_attr_list[$key]['cur_code_list'] = $cur_code_list;
+        }
+
+        return success($goods_attr_list);
+        // if($goods_attr_list){
+        //     foreach($goods_attr_list as $key => $value){
+        //         $goods_attr_list[$key]['price'] = $this->convertCurrency($value['price'],$value['currency_code'],'CNY');
+        //     }
+        // }
+        // return success($goods_attr_list);
+    }
+
+
     function convertCurrency($amount, $from_currency, $to_currency) {
         // 检查参数是否有效
         if (!is_numeric($amount) || $amount <= 0 || empty($from_currency) || empty($to_currency)) {
@@ -513,7 +499,7 @@ class GoodsService extends BaseAdminService
 
 
             $model->commit();
-            return success();
+            return success(['goods_id' => $goods->goods_id]);
         } catch (\Exception $e) {
             $model->rollback();
             return fail($e->getMessage());
