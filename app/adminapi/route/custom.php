@@ -133,11 +133,22 @@ Route::group('saler_tools/customer', function () {
     Route::post('logistics_find', 'addon\saler_tools\app\adminapi\controller\Customer@logisticsFind');
     Route::post('logistics_track', 'addon\saler_tools\app\adminapi\controller\Customer@logisticsTrack');
     Route::post('to_price', 'addon\saler_tools\app\adminapi\controller\Goods@toPrice');
+    Route::post('to_price_details', 'addon\saler_tools\app\adminapi\controller\Goods@toPriceDetails');
     Route::post('getck_type_price', 'addon\saler_tools\app\adminapi\controller\Goods@getCkTypePrice');
     Route::post('complaint_add', 'addon\saler_tools\app\adminapi\controller\Customer@ComplaintAdd');
 });
 
-
+// 定金找货
+Route::group('saler_tools/sourcing', function () {
+    Route::post('sourcing_add', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingAdd');
+    Route::post('sourcing_lists', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingLists');
+    Route::post('sourcing_details', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingDetails');
+    Route::post('sourcing_goods_add', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingGoodsAdd');
+    Route::post('sourcing_end', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingEnd');
+    Route::post('sourcing_again', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingAgain');
+    Route::post('sourcing_del', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingDel');
+    Route::post('sourcing_edit', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingEdit');
+});
 
 //登录后未注册的用户用到的接口
 Route::group('saler_tools/get_all_goods', function () {
