@@ -52,6 +52,7 @@ class SourcingModel extends BaseModel
         'price',
         'order_id',
         'update_time',
+        'billing_time',
         
     ];
 

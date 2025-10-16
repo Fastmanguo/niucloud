@@ -148,6 +148,8 @@ Route::group('saler_tools/sourcing', function () {
     Route::post('sourcing_again', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingAgain');
     Route::post('sourcing_del', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingDel');
     Route::post('sourcing_edit', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingEdit');
+    Route::post('sourcing_billing', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingBilling');
+    Route::post('sourcing_count', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingCount');
 });
 
 //登录后未注册的用户用到的接口

@@ -30,10 +30,13 @@ class Sourcing extends BaseController
             'mobile.default'   => "",
             'deposit_price.require'   => "请输入定金金额",
             'sale_uids.require'   => "请输入销售人员id",
-            'delivery_time.require'   => "请输入交付时间",
+            'delivery_time.default'   => "",
             'payment_images.default'   => "",
             'remarks.default'   => "",
         ]);
+        if($data['delivery_time']){
+            $data['delivery_time'] = strtotime($data['delivery_time']);
+        }
         return (new SourcingService())->sourcingAdd($data);
     }
 
@@ -137,5 +140,43 @@ class Sourcing extends BaseController
         ]);
         $data['update_time'] = time();
         return (new SourcingService())->sourcingEdit($data);
+    }
+
+    /**
+     * 开单
+     * @return \think\Response
+     */
+    public function sourcingBilling()
+    {
+        $data = $this->_vali([
+            'id.require'   => "请输入采购单id",
+            'goods_id.require'   => "请输入商品id",
+            'order_id.require'   => "请输入订单id",
+            'mobile.require'   => "请输入顾客手机号",
+            'deposit_price.require'   => "请输入定金金额",
+            'balance_price.require'   => "请输入尾款金额",
+            'customer_type.require'   => "请输入客户类型",
+            'delivery_time.default'   => "",
+            'payment_images.require'   => "请输入收款凭证",
+            'remarks.default'   => "",
+        ]);
+        $data['billing_time'] = time();
+        $data['price'] = $data['deposit_price'] + $data['balance_price'];
+        if($data['delivery_time']){
+            $data['delivery_time'] = strtotime($data['delivery_time']);
+        }
+        return (new SourcingService())->sourcingBilling($data);
+    }
+
+    /**
+     * 采购单统计
+     * @return \think\Response
+     */
+    public function sourcingCount()
+    {
+        $data = $this->_vali([
+            'uid.require'   => "请输入当前登录用户id",
+        ]);
+        return (new SourcingService())->sourcingCount($data);
     }
 }

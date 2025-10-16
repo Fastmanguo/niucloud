@@ -138,13 +138,8 @@ class SourcingService extends BaseAdminService
             $sourcing['goods_info']['goods_attr_list'] = json_decode($sourcing['goods_info']['goods_attr_list'],true);
         }
         if($sourcing['sale_uids']){
-            $sourcing['sale_uids'] = json_decode($sourcing['sale_uids'],true);
-            $real_name_list = [];
-            foreach($sourcing['sale_uids'] as $k => $v){
-                    $user = (new SysUser())->where('uid', '=', $v)->findOrEmpty()->toArray();
-                    $real_name_list[] = $user['real_name'];
-                }
-            $sourcing['sale_uids_name'] = implode(',',$real_name_list);
+            $user = (new SysUser())->where('uid', '=', $sourcing['sale_uids'])->findOrEmpty()->toArray();
+            $sourcing['sale_uids_name'] = $user['real_name'];
         }
 
         if($sourcing['payment_images']){
@@ -260,9 +255,82 @@ class SourcingService extends BaseAdminService
         if ($result === false) {
             return fail('定金找货表更新失败');
         }
-        
-        
         return success("操作成功");
+    }
+
+     /**
+     * 开单
+     * @param $data
+     * @return bool
+     */
+    public function sourcingBilling($data)
+    {
+        // 修改关联商品的客户类型
+        if($data['customer_type']!=""){
+            // 使用原生SQL更新客户类型
+            Db::execute("UPDATE saler_tools_goods SET customer_type = ".$data['customer_type']." WHERE goods_id = ".$data['goods_id']);
+        }
+
+        $sourcingModel = new SourcingModel();
+        unset($data['customer_type']);
+        // 使用原生SQL进行更新，动态拼接字段并进行参数绑定
+        $columns = array_keys($sourcingModel->getModelColumn());
+        $updateData = array_intersect_key($data, array_flip($columns));
+        if (isset($updateData['id'])) unset($updateData['id']);
+        if (empty($updateData)) {
+            return success("操作成功1");
+        }
+        $setClauses = [];
+        $params = [];
+        foreach ($updateData as $col => $val) {
+            $setClauses[] = "$col = :$col";
+            $params[$col] = $val;
+        }
+        $params['id'] = $data['id'];
+        $sql = "UPDATE " . $sourcingModel->getTable() . " SET " . implode(', ', $setClauses) . " WHERE id = :id";
+        $result = Db::execute($sql, $params);
+        if ($result === false) {
+            return fail('开单失败');
+        }
+
+
+        return success("操作成功");
+    }
+
+     /**
+      * 采购单统计
+      * @param $data
+      * @return array
+      */
+     public function sourcingCount($data)
+     {
+         $sourcingModel = new SourcingModel();
+         
+         try {
+             // 查询当前用户下的全部数量
+             $total_count = $sourcingModel->where('uid', $data['uid'])->count();
+             
+             // 查询找货数量 (假设status=0表示找货中)
+             $finding_count = $sourcingModel->where('uid', $data['uid'])->where('status', 1)->count();
+             
+             // 查询入库数量 (假设status=1表示已入库)
+             $warehoused_count = $sourcingModel->where('uid', $data['uid'])->where('status', 2)->count();
+             
+             // 查询已完成数量 (假设status=2表示已完成)
+             $completed_count = $sourcingModel->where('uid', $data['uid'])->where('status', 3)->count();
+             
+             // 构建返回数据
+             $stats = [
+                 'total_count' => $total_count,
+                 'finding_count' => $finding_count,
+                 'warehoused_count' => $warehoused_count,
+                 'completed_count' => $completed_count
+             ];
+             
+             return success($stats);
+         } catch (\Exception $e) {
+             return fail('统计失败: ' . $e->getMessage());
+         }
     }
         
     
