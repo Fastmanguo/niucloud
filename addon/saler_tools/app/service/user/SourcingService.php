@@ -103,12 +103,17 @@ class SourcingService extends BaseAdminService
 
         foreach($lists as $key => $val){
             // 获取关联的商品信息
-            if($val['goods_id']){
+            if($val['goods_id']){    
                 $goods = (new GoodsModel())->where('goods_id', $val['goods_id'])->select()->toArray();
-                if($goods[0]['goods_attr_list']){
-                    $goods[0]['goods_attr_list'] = json_decode($goods[0]['goods_attr_list'],true);
+                // 检查商品数组是否为空
+                if(!empty($goods) && isset($goods[0])){
+                    if(isset($goods[0]['goods_attr_list']) && $goods[0]['goods_attr_list']){    
+                        $goods[0]['goods_attr_list'] = json_decode($goods[0]['goods_attr_list'],true);
+                    }
+                    $lists[$key]['goods_info'] = $goods[0];
+                }else{
+                    $lists[$key]['goods_info'] = [];
                 }
-                $lists[$key]['goods_info'] = $goods[0];
             }else{
                 $lists[$key]['goods_info'] = [];
             }
@@ -134,8 +139,15 @@ class SourcingService extends BaseAdminService
         $sourcingModel = new SourcingModel();
         $sourcing = $sourcingModel->where('id', $data['id'])->findOrEmpty()->toArray();
         if($sourcing['goods_id']){
-            $sourcing['goods_info'] = (new GoodsModel())->where('goods_id', $sourcing['goods_id'])->findOrEmpty()->toArray();
-            $sourcing['goods_info']['goods_attr_list'] = json_decode($sourcing['goods_info']['goods_attr_list'],true);
+            $goods_info = (new GoodsModel())->where('goods_id', $sourcing['goods_id'])->findOrEmpty()->toArray();
+            if($goods_info){
+                $sourcing['goods_info'] = $goods_info;
+                $sourcing['goods_info']['goods_attr_list'] = json_decode($sourcing['goods_info']['goods_attr_list'],true);
+                $sourcing['customer_type'] = $sourcing['goods_info']['customer_type'];
+            }else{
+                $sourcing['goods_info'] = [];
+            }
+           
         }
         if($sourcing['sale_uids']){
             $user = (new SysUser())->where('uid', '=', $sourcing['sale_uids'])->findOrEmpty()->toArray();
@@ -152,6 +164,10 @@ class SourcingService extends BaseAdminService
 
         if($sourcing['delivery_time']){
             $sourcing['delivery_time'] = date('Y-m-d H:i:s',$sourcing['delivery_time']);
+        }
+
+        if($sourcing['billing_time']){
+            $sourcing['billing_time'] = date('Y-m-d H:i:s',$sourcing['billing_time']);
         }
 
         return success($sourcing);

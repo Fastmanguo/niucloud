@@ -94,7 +94,6 @@ class Order extends BaseAdminController
             unset($data['search']);
         }
         $order = $this->_order(['create_time'], [], ['order_id' => 'desc']);
-        return success([$data,$order]);
         return app(OrderService::class)->lists($data,$order);
     }
 
@@ -234,17 +233,66 @@ class Order extends BaseAdminController
         return app(OrderService::class)->unLock($data);
     }
 
+    /**
+     * 取消锁单
+     */
+    public function lockCancel(){
+        $data = $this->_vali([
+            'order_id.require'       => '请选择锁单订单id',
+        ]);
+        return app(OrderService::class)->lockCancel($data);
+    }
+
+
+    /**
+     * 编辑锁单数据
+     */
+    public function lockEdit(){
+        $data = $this->_vali([
+            'sale_uids.default'       => [],
+            'deposit.default'         => 0,
+            'goods_attr_list.require' => '请选择商品规格',
+            'payment_receipt.default' => [],
+            'exp_trans_price.default' => 0,
+            'address_info.default'    => '',
+            'lock_remark.default'     => '',
+            'order_id.require'        => '请选择锁单订单id',
+            // 'goods_num.min:1'         => 'order_goods_num_min',
+        ]);
+        $goods_num_list = [];
+        foreach($data['goods_attr_list'] as $key => $val){
+            $goods_num_list[] = $val['lock_goods_num'];
+        }
+        $data['goods_num'] = array_sum($goods_num_list);
+        $data['update_time'] = date('Y-m-d H:i:s');
+        $data['goods_attr_list'] = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
+        if($data['payment_receipt']){
+            $data['payment_receipt'] = json_encode($data['payment_receipt'], JSON_UNESCAPED_UNICODE);
+        }
+        // return success($data);
+        return app(OrderService::class)->lockEdit($data);
+    }
+
     public function lock()
     {
         $data = $this->_vali([
-            'goods_id.require'        => 'please_select_goods',
-            'lock_remark.default'     => '',
+            'goods_id.require'        => '请选择锁单商品id',
+            'uid.require'             => '请输入锁单人id',
+            'site_id.require'         => '请输入站点id',
+            'sale_uids.default'       => [],
             'deposit.default'         => 0,
+            'goods_attr_list.require' => '请选择商品规格',
+            'payment_receipt.default' => [],
             'exp_trans_price.default' => 0,
             'address_info.default'    => '',
-            'sale_uids.default'       => [],
-            'goods_num.min:1'         => 'order_goods_num_min',
+            'lock_remark.default'     => '',
+            // 'goods_num.min:1'         => 'order_goods_num_min',
         ]);
+        $goods_num_list = [];
+        foreach($data['goods_attr_list'] as $key => $val){
+            $goods_num_list[] = $val['lock_goods_num'];
+        }
+        $data['goods_num'] = array_sum($goods_num_list);
         return app(OrderService::class)->lock($data);
     }
 

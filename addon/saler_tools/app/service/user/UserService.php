@@ -230,8 +230,8 @@ class UserService extends BaseAdminService
 
     public function stat()
     {
-        $goods_total    = (new Goods())->where('site_id', $this->site_id)->where('create_uid', $this->uid)->count('goods_id');
-        $order_total    = (new Order())->where('site_id', $this->site_id)->where('create_uid', $this->uid)->count('order_id');
+        $goods_total    = (new Goods())->where('site_id', $this->site_id)->count('goods_id');
+        $order_total    = (new Order())->where('site_id', $this->site_id)->count('order_id');
         $visitors_count = (new OnlineStatModel())->where('site_id', $this->site_id)->where('date_key', date('Ymd'))->value('visitors_count', 0);
         return success([
             'goods_total'    => $goods_total,

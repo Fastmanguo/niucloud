@@ -19,6 +19,7 @@ use core\exception\AdminException;
 use think\Response;
 use app\model\member\CustomerModel;
 use Kkokk\Poster\Facades\Facade;
+use think\facade\Db;
 
 /**
  * 订单服务
@@ -175,9 +176,17 @@ class OrderService extends BaseAdminService
             $order['goods_attr_list'] = json_decode($order['goods_attr_list'], true);
         }
 
-        $customer = new CustomerModel();
-        $data_info = $customer->where('id', '=', $order['customer_id'])->find()->toArray();
-        $order['customer_name'] = $data_info['customer_name'];
+        if(!empty($order['payment_receipt'])){
+            $order['payment_receipt'] = json_decode($order['payment_receipt'], true);
+        }
+
+        if($order['customer_id']){
+            $customer = new CustomerModel();
+            $data_info = $customer->where('id', '=', $order['customer_id'])->find()->toArray();
+            $order['customer_name'] = $data_info['customer_name'];
+        }else{
+            $order['customer_name'] = '';
+        }
 
         return success($order);
 
@@ -280,7 +289,9 @@ class OrderService extends BaseAdminService
             $billing_goods_num = [0];
             if (!empty($data['goods_attr_list'])) {
                 foreach ($data['goods_attr_list'] as $key=>$val) {
-                    $billing_goods_num[] = $val['billing_goods_num'];
+                    if(isset($val['billing_goods_num']) && $val['billing_goods_num']){
+                        $billing_goods_num[] = $val['billing_goods_num'];
+                    }
                 }
             }
             $billing_goods_num = array_sum($billing_goods_num);
@@ -424,6 +435,51 @@ class OrderService extends BaseAdminService
 
     }
 
+    /**
+     * 编辑锁单数据
+     */
+    public function lockEdit($data){
+        // 允许更新的字段白名单（结合控制器入参）
+        $allowedColumns = [
+            'sale_uids',
+            'deposit',
+            'goods_attr_list',
+            'payment_receipt',
+            'exp_trans_price',
+            'address_info',
+            'lock_remark',
+            'goods_num',
+            'update_time',
+        ];
+
+        // sale_uids 若为数组，转为 JSON，保持与模型类型/原逻辑一致
+        if (isset($data['sale_uids']) && is_array($data['sale_uids'])) {
+            $data['sale_uids'] = json_encode($data['sale_uids'], JSON_UNESCAPED_UNICODE);
+        }
+
+        // 动态构造原生 SQL 与绑定参数
+        $setClauseParts = [];
+        $bindParams     = [];
+        foreach ($allowedColumns as $column) {
+            if (array_key_exists($column, $data)) {
+                $setClauseParts[]   = "`{$column}` = :{$column}";
+                $bindParams[$column] = $data[$column];
+            }
+        }
+
+        // 若无可更新字段则直接返回成功
+        if (empty($setClauseParts)) {
+            return success("操作成功");
+        }
+
+        // where 条件参数
+        $bindParams['order_id'] = $data['order_id'];
+
+        $sql = "UPDATE `saler_tools_order` SET " . implode(', ', $setClauseParts) . " WHERE `order_id` = :order_id";
+        Db::execute($sql, $bindParams);
+
+        return success("操作成功");
+    }
 
     public function lock($data)
     {
@@ -432,7 +488,7 @@ class OrderService extends BaseAdminService
         $goods_model = (new GoodsModel());
         $goods       = $goods_model->where('goods_id', $goods_id)
             ->with(['goodsCost'])
-            ->where('site_id', $this->site_id)
+            ->where('site_id', $data['site_id'])
             ->findOrEmpty()->toArray();
 
         if (empty($goods)) {
@@ -466,7 +522,7 @@ class OrderService extends BaseAdminService
             $data = [
                 'order_status'          => self::LOCK_ORDER,
                 'order_no'              => create_no(),
-                'site_id'               => $this->site_id,
+                'site_id'               => $data['site_id'],
                 'goods_id'              => $goods_id,
                 'goods_cover'           => $goods['goods_cover'],
                 'goods_name'            => $goods['goods_name'],
@@ -489,17 +545,18 @@ class OrderService extends BaseAdminService
                 'goods_num'           => $data['goods_num'],
                 'deposit'             => $data['deposit'],
                 'exp_trans_price'     => $data['exp_trans_price'],
-                'lock_uid'            => $this->uid,
+                'lock_uid'            => $data['uid'],
                 'lock_remark'         => $data['lock_remark'] ?? '',
                 'lock_receipt'        => $data['lock_receipt'] ?? [],
-                'create_uid'          => $this->uid,
+                'create_uid'          => $data['uid'],
                 'sale_uids'           => $data['sale_uids'] ?? [],
                 'lock_time'           => date('Y-m-d H:i:s'),
                 'create_time'         => date('Y-m-d H:i:s'),
-                'after_sales_service' => [],
+                "payment_receipt"     =>json_encode($data['payment_receipt'], JSON_UNESCAPED_UNICODE) ?? "",
+                'goods_attr_list'     => json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE),
+                "update_time"         => date('Y-m-d H:i:s'),
             ];
-
-            GoodsLogService::setLog($this->site_id, $goods_id, $data['goods_num'], GoodsDict::LOCK);
+            GoodsLogService::setLog($data['site_id'], $goods_id, $data['goods_num'], GoodsDict::LOCK);
 
             $order_model->create($data);
 
@@ -511,6 +568,76 @@ class OrderService extends BaseAdminService
         }
 
     }
+
+    /**
+     * 取消锁单-有商品规格
+     */
+    public function lockCancel($data){
+	        $order_model = new OrderModel();
+	        $order       = $order_model->where('order_id', $data['order_id'])->findOrEmpty()->toArray();
+	        $goods_id = $order['goods_id'];
+	        $lock_goods_attr_list = json_decode($order['goods_attr_list'], true);
+	        
+	        $goods_num_list = [];
+	        $goods_model = new GoodsModel();
+	        $goods_info = $goods_model->where('goods_id', $goods_id)->findOrEmpty()->toArray();
+	        $goods_attr_list = json_decode($goods_info['goods_attr_list'], true);
+
+	        foreach ($goods_attr_list as $key => $val){
+	            foreach ($lock_goods_attr_list as $lock_key => $lock_val){
+	                if ($val['specifications'] == $lock_val['specifications']){
+	                    $goods_attr_list[$key]['goods_num'] = $val['goods_num'] + $lock_val['lock_goods_num'];
+	                }
+	            }
+	            $goods_num_list[] = $goods_attr_list[$key]['goods_num'];
+	        }
+
+	        // 订单与商品的更新数据
+	        $order_update_data = [
+	            'order_status' => self::LOCK_ORDER,
+	            'deleted_time' => time(),
+	        ];
+
+	        $goods_update_data = [
+	            'goods_attr_list' => json_encode($goods_attr_list, JSON_UNESCAPED_UNICODE),
+	            'stock'           => array_sum($goods_num_list),
+	        ];
+
+	        // 使用事务与原生 SQL 更新
+	        Db::startTrans();
+	        try {
+	            // 更新订单表：saler_tools_order
+	            $orderSetParts = [];
+	            $orderBinds    = ['order_id' => $data['order_id']];
+	            foreach ($order_update_data as $col => $val) {
+	                $orderSetParts[]   = "`{$col}` = :{$col}";
+	                $orderBinds[$col]  = $val;
+	            }
+	            if (!empty($orderSetParts)) {
+	                $orderSql = "UPDATE `saler_tools_order` SET " . implode(', ', $orderSetParts) . " WHERE `order_id` = :order_id";
+	                Db::execute($orderSql, $orderBinds);
+	            }
+
+	            // 更新商品表：saler_tools_goods
+	            $goodsSetParts = [];
+	            $goodsBinds    = ['goods_id' => $goods_id];
+	            foreach ($goods_update_data as $col => $val) {
+	                $goodsSetParts[]  = "`{$col}` = :{$col}";
+	                $goodsBinds[$col] = $val;
+	            }
+	            if (!empty($goodsSetParts)) {
+	                $goodsSql = "UPDATE `saler_tools_goods` SET " . implode(', ', $goodsSetParts) . " WHERE `goods_id` = :goods_id";
+	                Db::execute($goodsSql, $goodsBinds);
+	            }
+
+	            Db::commit();
+	            return success("操作成功");
+	        } catch (\Exception $e) {
+	            Db::rollback();
+	            return fail($e->getMessage());
+	        }
+    }
+
 
     /**
      * 取消锁单
@@ -768,12 +895,12 @@ class OrderService extends BaseAdminService
             ->withSearch(['order_no', 'order_status', 'search', 'order_id', 'is_paid', 'transaction_time'], $query);
 
 
-        if (!empty($params['end_time'])) {
-            $model->where('transaction_time', '<=', $params['end_time']);
+        if (!empty($query['end_time'])) {
+            $model->where('transaction_time', '<=', $query['end_time']);
         }
 
-        if (!empty($params['start_time'])) {
-            $model->where('transaction_time', '>=', $params['start_time']);
+        if (!empty($query['start_time'])) {
+            $model->where('transaction_time', '>=', $query['start_time']);
         }
 
         $model = $model->field('sum(goods_num) as goods_num,sum(goods_price) as goods_price,sum(deposit) as deposit,sum(total_cost) as total_cost,' .

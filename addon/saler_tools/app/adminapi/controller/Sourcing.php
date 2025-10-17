@@ -37,6 +37,9 @@ class Sourcing extends BaseController
         if($data['delivery_time']){
             $data['delivery_time'] = strtotime($data['delivery_time']);
         }
+        if($data['payment_images']){
+            $data['payment_images'] = json_encode($data['payment_images']);
+        }
         return (new SourcingService())->sourcingAdd($data);
     }
 
@@ -129,16 +132,23 @@ class Sourcing extends BaseController
         $data = $this->_vali([
             'id.require'   => "请输入采购单id",
             'requirement.require'   => "请输入顾客要求",
-            'mobile.require'   => "请输入顾客手机号",
+            'mobile.default'   => "",
             'deposit_price.require'   => "请输入定金金额",
             'sale_uids.require'   => "请输入销售人员id",
-            'payment_images.require'   => "请输入收款凭证",
-            'remarks.require'   => "请输入备注",
+            'payment_images.default'   => "",
+            'remarks.default'   => "",
             'balance_price.default'   => "",
             'price.default'   => "",
             'customer_type.default'   => "",
+            'delivery_time.default'   => "",
         ]);
         $data['update_time'] = time();
+        if($data['delivery_time']){
+            $data['delivery_time'] = strtotime($data['delivery_time']);
+        }
+         if($data['payment_images']){
+            $data['payment_images'] = json_encode($data['payment_images']);
+        }
         return (new SourcingService())->sourcingEdit($data);
     }
 
@@ -152,12 +162,12 @@ class Sourcing extends BaseController
             'id.require'   => "请输入采购单id",
             'goods_id.require'   => "请输入商品id",
             'order_id.require'   => "请输入订单id",
-            'mobile.require'   => "请输入顾客手机号",
+            'mobile.default'   => "",
             'deposit_price.require'   => "请输入定金金额",
             'balance_price.require'   => "请输入尾款金额",
             'customer_type.require'   => "请输入客户类型",
             'delivery_time.default'   => "",
-            'payment_images.require'   => "请输入收款凭证",
+            'payment_images.default'   => "",
             'remarks.default'   => "",
         ]);
         $data['billing_time'] = time();
@@ -165,6 +175,10 @@ class Sourcing extends BaseController
         if($data['delivery_time']){
             $data['delivery_time'] = strtotime($data['delivery_time']);
         }
+         if($data['payment_images']){
+            $data['payment_images'] = json_encode($data['payment_images']);
+        }
+        $data['status'] = 3;
         return (new SourcingService())->sourcingBilling($data);
     }
 

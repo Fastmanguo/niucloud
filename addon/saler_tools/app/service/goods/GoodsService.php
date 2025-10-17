@@ -252,7 +252,11 @@ class GoodsService extends BaseAdminService
                 ->value('money');
         }
         $goods_attr_list = json_decode($goods['goods_attr_list'],true);
+        foreach($goods_attr_list as $key => $value){
+            $goods_attr_list[$key]['lock_goods_num'] = 1;
+        }
         $goods['goods_attr_list'] = $goods_attr_list;
+        
         if($goods_attr_list){
             $goods['total_cost'] = $goods_attr_list[0]['total_cost'];
             $goods['peer_price'] = $goods_attr_list[0]['peer_price'];

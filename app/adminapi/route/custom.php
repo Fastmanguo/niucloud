@@ -152,6 +152,16 @@ Route::group('saler_tools/sourcing', function () {
     Route::post('sourcing_count', 'addon\saler_tools\app\adminapi\controller\Sourcing@sourcingCount');
 });
 
+//锁单
+Route::group('saler_tools/lock_order', function () {
+    Route::post('lock', 'addon\saler_tools\app\adminapi\controller\Order@lock');
+    Route::post('lock_edit', 'addon\saler_tools\app\adminapi\controller\Order@lockEdit');
+    Route::post('lock_cancel', 'addon\saler_tools\app\adminapi\controller\Order@lockCancel');
+    
+});
+
+
+
 //登录后未注册的用户用到的接口
 Route::group('saler_tools/get_all_goods', function () {
     Route::post('goods_list', 'addon\saler_tools\app\adminapi\controller\UserAddress@goodsList');
