@@ -936,4 +936,147 @@ class CustomerService extends BaseAdminService
         }
     }
 
+    /**
+     * 生成一个带连接的二维码
+     */
+    public function generateQrCode($url){
+        try {
+            // 验证URL格式
+            if (empty($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+                return fail('无效的URL地址');
+            }
+            
+            // 设置二维码存储目录
+            $site_id = $this->site_id ?? 1;
+            $dir = 'upload/qrcode/' . $site_id;
+            
+            // 确保目录存在
+            if (!is_dir($dir) && !mkdir($dir, 0777, true) && !is_dir($dir)) {
+                return fail('二维码存储目录创建失败');
+            }
+            
+            // 生成唯一文件名
+            $filename = 'qrcode_' . md5($url . time()) . '.png';
+            $file_path = $dir . '/' . $filename;
+            
+            // 先生成原始二维码
+            $qr_path = qrcode($url, '', [], $site_id, $dir, 'h5', [
+                'is_transparent' => true,
+                'size' => 200, // 二维码尺寸
+                'margin' => 5, // 边距
+                'error_correction' => 'M' // 错误纠正级别
+            ], true);
+            
+            if (!$qr_path || !is_file($qr_path)) {
+                return fail('二维码生成失败');
+            }
+            
+            // 创建圆形白色底片的二维码
+            $final_path = $this->createCircularQrCode($qr_path, $file_path);
+            
+            if ($final_path && is_file($final_path)) {
+                // 删除临时文件
+                if (is_file($qr_path)) {
+                    unlink($qr_path);
+                }
+                
+                return success([
+                    'qrcode_url' => $final_path,
+                    'qrcode_path' => $final_path,
+                    'url' => $url
+                ], '二维码生成成功');
+            } else {
+                return fail('圆形二维码生成失败');
+            }
+            
+        } catch (\Exception $e) {
+            return fail('二维码生成异常：' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * 创建圆形白色底片的二维码
+     */
+    private function createCircularQrCode($qr_path, $output_path) {
+        try {
+            // 圆形底片参数
+            $circle_size = 300; // 圆形底片直径
+            $qr_size = 200; // 二维码尺寸
+            $margin = ($circle_size - $qr_size) / 2; // 计算边距
+            
+            // 创建圆形白色底片
+            $circle_image = imagecreatetruecolor($circle_size, $circle_size);
+            $white = imagecolorallocate($circle_image, 255, 255, 255);
+            $transparent = imagecolorallocate($circle_image, 0, 0, 0);
+            
+            // 设置透明背景
+            imagecolortransparent($circle_image, $transparent);
+            imagefill($circle_image, 0, 0, $transparent);
+            
+            // 绘制白色圆形
+            imagefilledellipse($circle_image, $circle_size/2, $circle_size/2, $circle_size, $circle_size, $white);
+            
+            // 加载原始二维码
+            $qr_image = imagecreatefrompng($qr_path);
+            if (!$qr_image) {
+                return false;
+            }
+
+            // 开启透明通道并保存透明色
+            imagealphablending($qr_image, true);
+            imagesavealpha($qr_image, true);
+
+            // 对二维码进行二值化处理，确保纯黑纯白
+            $qr_w = imagesx($qr_image);
+            $qr_h = imagesy($qr_image);
+            // 创建处理后的画布
+            $bw_qr = imagecreatetruecolor($qr_w, $qr_h);
+            imagesavealpha($bw_qr, true);
+            $transparent_bw = imagecolorallocatealpha($bw_qr, 0, 0, 0, 127);
+            imagefill($bw_qr, 0, 0, $transparent_bw);
+            $black = imagecolorallocate($bw_qr, 0, 0, 0);
+            $white = imagecolorallocate($bw_qr, 255, 255, 255);
+            for ($y = 0; $y < $qr_h; $y++) {
+                for ($x = 0; $x < $qr_w; $x++) {
+                    $rgba = imagecolorsforindex($qr_image, imagecolorat($qr_image, $x, $y));
+                    $alpha = $rgba['alpha'] ?? 0; // 0(不透明)-127(全透明)
+                    // 根据亮度阈值(中值)二值化，并忽略透明像素
+                    if ($alpha >= 100) {
+                        // 近似透明，设为白色以避免灰边
+                        imagesetpixel($bw_qr, $x, $y, $white);
+                    } else {
+                        $luma = 0.299 * $rgba['red'] + 0.587 * $rgba['green'] + 0.114 * $rgba['blue'];
+                        imagesetpixel($bw_qr, $x, $y, ($luma < 128) ? $black : $white);
+                    }
+                }
+            }
+
+            // 使用最近邻缩放，避免灰边（不要用resampled）
+            imagecopyresized(
+                $circle_image,  // 目标图像
+                $bw_qr,         // 源图像(已二值化)
+                $margin,        // 目标X坐标
+                $margin,        // 目标Y坐标
+                0,              // 源X坐标
+                0,              // 源Y坐标
+                $qr_size,       // 目标宽度
+                $qr_size,       // 目标高度
+                $qr_w,          // 源宽度
+                $qr_h           // 源高度
+            );
+            
+            // 保存最终图像
+            $result = imagepng($circle_image, $output_path);
+            
+            // 释放内存
+            imagedestroy($circle_image);
+            imagedestroy($qr_image);
+            
+            return $result ? $output_path : false;
+            
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
 }

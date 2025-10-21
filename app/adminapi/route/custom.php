@@ -138,6 +138,7 @@ Route::group('saler_tools/customer', function () {
     Route::post('complaint_add', 'addon\saler_tools\app\adminapi\controller\Customer@ComplaintAdd');
     Route::post('feed_back', 'addon\saler_tools\app\adminapi\controller\Customer@FeedBack');
     Route::post('goods_cl', 'addon\saler_tools\app\adminapi\controller\Goods@goodsCl');
+    Route::post('generate_qr_code', 'addon\saler_tools\app\adminapi\controller\Customer@generateQrCode');
 
         
 });

@@ -310,4 +310,14 @@ class Customer extends BaseController
         $data['create_time'] = time();
         return (new CustomerService())->FeedBack($data);
     }
+
+    /**
+     * 生成一个带连接的二维码
+     */
+    public function generateQrCode(){
+        $data = $this->_vali([
+            'url.require'   => "请输入URL地址",
+        ]);
+        return (new CustomerService())->generateQrCode($data['url']);
+    }
 }
