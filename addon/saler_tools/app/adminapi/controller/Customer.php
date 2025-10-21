@@ -294,4 +294,20 @@ class Customer extends BaseController
         $data['complaint_images'] = json_encode($data['complaint_images']);
         return (new CustomerService())->ComplaintAdd($data);
     }
+
+    /**
+     * 添加客户反馈商品
+     */
+    public function feedBack(){
+        $data = $this->_vali([
+            "uid.require"   => "请输入用户ID",
+            "feedback_desc.require"   => "请输入反馈描述",
+            "feedback_images.default"   => "",
+        ]);
+        if($data['feedback_images']){
+            $data['feedback_images'] = json_encode($data['feedback_images']);
+        }
+        $data['create_time'] = time();
+        return (new CustomerService())->FeedBack($data);
+    }
 }

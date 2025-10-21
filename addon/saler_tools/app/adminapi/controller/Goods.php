@@ -426,5 +426,16 @@ class Goods extends BaseAdminController
         return app(GoodsService::class)->getCkTypePrice($data);
     }
 
+    /**
+     * 商品擦亮
+     */
+    public function goodsCl()
+    {
+         $data = $this->_vali([
+            'site_id.query'        => '请输入店铺id',
+        ]);
+        return app(GoodsService::class)->goodsCl($data);
+    }
+
 
 }

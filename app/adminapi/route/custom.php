@@ -136,6 +136,10 @@ Route::group('saler_tools/customer', function () {
     Route::post('to_price_details', 'addon\saler_tools\app\adminapi\controller\Goods@toPriceDetails');
     Route::post('getck_type_price', 'addon\saler_tools\app\adminapi\controller\Goods@getCkTypePrice');
     Route::post('complaint_add', 'addon\saler_tools\app\adminapi\controller\Customer@ComplaintAdd');
+    Route::post('feed_back', 'addon\saler_tools\app\adminapi\controller\Customer@FeedBack');
+    Route::post('goods_cl', 'addon\saler_tools\app\adminapi\controller\Goods@goodsCl');
+
+        
 });
 
 // 定金找货
@@ -157,7 +161,19 @@ Route::group('saler_tools/lock_order', function () {
     Route::post('lock', 'addon\saler_tools\app\adminapi\controller\Order@lock');
     Route::post('lock_edit', 'addon\saler_tools\app\adminapi\controller\Order@lockEdit');
     Route::post('lock_cancel', 'addon\saler_tools\app\adminapi\controller\Order@lockCancel');
-    
+    Route::post('lock_statistics', 'addon\saler_tools\app\adminapi\controller\Order@lockStatistics');
+    Route::post('lock_proportion', 'addon\saler_tools\app\adminapi\controller\Order@lockProportion');
+    Route::post('get_person_info', 'addon\saler_tools\app\adminapi\controller\Order@getPersonInfo');
+});
+
+//记账
+Route::group('saler_tools/bookkeeping', function () {
+    Route::post('add_type', 'addon\saler_tools\app\adminapi\controller\Order@addType');
+    Route::post('del_type', 'addon\saler_tools\app\adminapi\controller\Order@delType');
+    Route::post('type_list', 'addon\saler_tools\app\adminapi\controller\Order@typeList');
+    Route::post('add', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@add');
+    Route::post('list', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@list');
+    Route::post('details', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@details');
 });
 
 

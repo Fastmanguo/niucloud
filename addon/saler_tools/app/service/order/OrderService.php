@@ -188,6 +188,13 @@ class OrderService extends BaseAdminService
             $order['customer_name'] = '';
         }
 
+        // 若 goods_attribute 未包含或为空，则强制从数据库读取并补充
+        if (!isset($order['goods_attribute']) || $order['goods_attribute'] === '' || $order['goods_attribute'] === null) {
+            $order['goods_attribute'] = (new GoodsModel())
+                ->where('goods_id', $order['goods_id'])
+                ->value('goods_attribute', '');
+        }
+
         return success($order);
 
     }
@@ -555,6 +562,7 @@ class OrderService extends BaseAdminService
                 "payment_receipt"     =>json_encode($data['payment_receipt'], JSON_UNESCAPED_UNICODE) ?? "",
                 'goods_attr_list'     => json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE),
                 "update_time"         => date('Y-m-d H:i:s'),
+                'address_info'        => $data['address_info'] ?? '',
             ];
             GoodsLogService::setLog($data['site_id'], $goods_id, $data['goods_num'], GoodsDict::LOCK);
 
@@ -1038,6 +1046,318 @@ class OrderService extends BaseAdminService
         }
 
 
+    }
+
+    /**
+     * 锁单金额统计
+     */
+    public function lockStatistics($data)
+    {
+        try {
+            $model = new OrderModel();
+            
+            // 基础条件：site_id是必填的
+            $query = $model->where('site_id', $data['site_id']);
+            
+            // 如果提供了uid参数，则添加uid条件
+            if (!empty($data['uid'])) {
+                $query = $query->where('create_uid', $data['uid']);
+            }
+            
+            // 查询锁单类型的订单
+            $query = $query->where('order_status', 'LOCK_ORDER');
+            
+            // 获取订单列表数据
+            $orderList = $query->field('*')
+                ->with(['createName', 'lockName'])
+                ->order('create_time', 'desc')
+                ->select()
+                ->toArray();
+
+            // 计算锁单数量
+            $goods_num = array_sum(array_column($orderList, 'goods_num'));
+            
+            //定金
+            $deposit = array_sum(array_column($orderList, 'deposit'));
+
+            //预计成交金额
+            $exp_trans_price = array_sum(array_column($orderList, 'exp_trans_price'));
+            
+            //锁单成本
+            $lock_cost_list = [];
+            foreach($orderList as $key => $val){
+                if(!empty($val['goods_attr_list'])){
+                    $goods_attr_list = json_decode($val['goods_attr_list'], true);
+                    foreach($goods_attr_list as $k => $v){
+                        $lock_cost_list[] = $v['total_cost'] * $v['lock_goods_num'];
+                    }
+                }
+            }
+            $lock_cost = array_sum($lock_cost_list);
+
+            // 查询今日新增锁单记录数量
+            $today_start = date('Y-m-d 00:00:00');
+            $today_end = date('Y-m-d H:i:s');
+            
+            $today_count_query = $model->where('site_id', $data['site_id'])
+                ->where('order_status', 'LOCK_ORDER')
+                ->where('create_time', '>=', $today_start)
+                ->where('create_time', '<=', $today_end);
+            
+            // 如果提供了uid参数，则添加uid条件
+            if (!empty($data['uid'])) {
+                $today_count_query = $today_count_query->where('create_uid', $data['uid']);
+            }
+            
+            // 只统计今日新增锁单数量
+            $today_order_count = $today_count_query->select()->toArray();
+            if($today_order_count){
+                $today_order_count = array_sum(array_column($orderList, 'goods_num'));
+            }else{
+                $today_order_count = 0;
+            }
+            // 查询今日删除锁单数量
+            $today_delete_query = $model->where('site_id', $data['site_id'])
+                ->where('deleted_time', 0)
+                ->where('create_time', '>=', $today_start)
+                ->where('create_time', '<=', $today_end);
+            
+            // 如果提供了uid参数，则添加uid条件
+            if (!empty($data['uid'])) {
+                $today_delete_query = $today_delete_query->where('create_uid', $data['uid']);
+            }
+            
+            // 只统计今日删除锁单数量
+            $today_delete_count = $today_delete_query->select()->toArray();
+            if($today_delete_count){
+                $today_delete_count = array_sum(array_column($orderList, 'goods_num'));
+            }else{
+                $today_delete_count = 0;
+            }
+            
+            return success([
+                  'goods_num' => $goods_num,
+                  'lock_cost' => $lock_cost,
+                  'deposit' => $deposit,
+                  'exp_trans_price' => $exp_trans_price,
+                  'today_order_count' => $today_order_count,
+                  'today_delete_count' => $today_delete_count
+              ]);
+        } catch (\Exception $e) {
+            return fail('查询失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 锁单比例统计
+     */
+    public function lockProportion($data)
+    {
+
+        $model = new OrderModel();
+        
+        // 基础条件：site_id是必填的
+        $query = $model->where('site_id', $data['site_id']);
+        
+        // 如果提供了uid参数，则添加uid条件
+        if (!empty($data['uid'])) {
+            $query = $query->where('create_uid', $data['uid']);
+        }
+        
+        // 查询锁单类型的订单
+        $query = $query->where('order_status', 'LOCK_ORDER');
+        
+        // 获取订单列表数据
+        $orderList = $query->field('*')
+            ->with(['createName', 'lockName'])
+            ->order('create_time', 'desc')
+            ->select()
+            ->toArray();
+        
+        // 计算锁单数量
+        $goods_num = array_sum(array_column($orderList, 'goods_num'));
+        
+        // 计算锁单成本
+        $lock_cost_list = [];
+        foreach($orderList as $key => $val){
+            if(!empty($val['goods_attr_list'])){
+                $goods_attr_list = json_decode($val['goods_attr_list'], true);
+                foreach($goods_attr_list as $k => $v){
+                    $lock_cost_list[] = $v['total_cost'] * $v['lock_goods_num'];
+                }
+            }
+        }
+        $lock_cost = array_sum($lock_cost_list);
+
+        $goods_model = new GoodsModel();
+        $goods_info = $goods_model->where('site_id', $data['site_id'])->select()->toArray();
+
+        //商品库存总数量
+         $stock_num = array_sum(array_column($goods_info, 'stock'));
+
+
+        //计算商品总成本
+        $goods_cost_list = [];
+        foreach($goods_info as $key => $val){
+            if(!empty($val['goods_attr_list'])){
+                $goods_attr_list = json_decode($val['goods_attr_list'], true);
+                foreach($goods_attr_list as $k => $v){
+                    $goods_cost_list[] = $v['total_cost'] * $v['goods_num'];
+                }
+            }
+        }
+        $total_cost = array_sum($goods_cost_list);
+
+        //数量占比
+        $lock_num_ratio = round($goods_num / $stock_num * 100, 4);
+
+        //商品成本占比
+        $lock_cost_price = round($lock_cost / $total_cost * 100, 4);
+
+        return success([
+            'num_ratio' => 100-$lock_num_ratio,
+            'lock_num_ratio' => $lock_num_ratio,
+
+            'cost_price' => 100-$lock_cost_price,
+            'lock_cost_price' => $lock_cost_price,
+
+            "num" => $stock_num-$goods_num,
+            "lock_num" => $goods_num,
+
+            "total_cost" => round(($total_cost-$lock_cost)/10000,4),
+            "lock_cost" => round($lock_cost/10000,4),
+        ]);
+    }
+
+
+    /**
+     * 获取店铺员工信息
+     */
+    public function getPersonInfo($data)
+    {
+        $order_model = new OrderModel();
+        $site_id = $data['site_id'];
+        try {
+            $list = (new \app\model\sys\SysUserRole())
+                ->order('is_admin desc,id desc')
+                ->with('userinfo')
+                ->append(['status_name'])
+                ->hasWhere('userinfo', [['is_del', '=', 0]])
+                ->where([['SysUserRole.site_id', '=', $site_id]])
+                ->select()
+                ->toArray();
+            
+            foreach($list as $key => $val){
+                $order_info = $order_model->where('create_uid', $val['uid'])->select()->toArray();
+                $list[$key]['lock_num'] = 0;
+                if(!empty($order_info)){
+                    $lock_num = array_sum(array_column($order_info, 'goods_num'));
+                    $list[$key]['lock_num'] = $lock_num;
+                }
+
+                //统计销售金额
+                $order_info_pirce = $order_model->where('create_uid', $val['uid'])
+                                                ->where('order_status', "FINISH_ORDER")
+                                                ->select()->toArray();
+                //销售额money
+                $list[$key]['money'] = 0;
+                if(!empty($order_info_pirce)){
+                    $list[$key]['money'] = round(array_sum(array_column($order_info_pirce, 'order_price'))/10000,4);
+                }
+
+                //成本total_cost
+                $list[$key]['total_cost'] = 0;
+                if(!empty($order_info_pirce)){
+                    $list[$key]['total_cost'] = round(array_sum(array_column($order_info_pirce, 'total_cost'))/10000,4);
+                }
+                //利润profit
+                $list[$key]['profit'] = 0;
+                if(!empty($order_info_pirce)){
+                    $list[$key]['profit'] = round(array_sum(array_column($order_info_pirce, 'order_price'))/10000 - array_sum(array_column($order_info_pirce, 'total_cost'))/10000,4);
+                }
+
+                //利率interest_rate
+                $list[$key]['interest_rate'] = 0;
+                if(!empty($order_info_pirce)){
+                    $list[$key]['interest_rate'] = round($list[$key]['profit']/$list[$key]['total_cost']*100,4);
+                }
+
+            }
+
+            return success($list);
+        } catch (\Throwable $e) {
+            return fail('查询失败：' . $e->getMessage());
+        }
+    }
+
+
+    /**
+     * 记账类型添加
+     */
+    public function addType($data)
+    {
+        $type_name = trim($data['type_name']);
+        $create_time = $data['create_time'];
+        $status = isset($data['status']) ? intval($data['status']) : 1; // 获取status参数，默认值为1
+        
+        try {
+            // 校验名称唯一性
+            $existing = \think\facade\Db::query(
+                "SELECT COUNT(*) as count FROM user_bookkeeping_type WHERE type_name = ?",
+                [$type_name]
+            );
+            
+            if ($existing[0]['count'] > 0) {
+                return fail('记账类型名称已存在');
+            }
+            
+            // 使用原生SQL插入，添加status字段
+            $sql = "INSERT INTO user_bookkeeping_type (type_name, create_time, status) VALUES (?, ?, ?)";
+            \think\facade\Db::execute($sql, [$type_name, $create_time, $status]);
+            
+            return success('添加成功');
+        } catch (\Throwable $e) {
+            return fail('添加失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 记账类型删除
+     */
+    public function delType($data)
+    {
+        $type_id = $data['type_id'];
+        
+        try {
+            // 使用原生SQL直接删除
+            $sql = "DELETE FROM user_bookkeeping_type WHERE id = ?";
+            $result = \think\facade\Db::execute($sql, [$type_id]);
+            
+            if ($result > 0) {
+                return success('删除成功');
+            } else {
+                return fail('记录不存在');
+            }
+        } catch (\Throwable $e) {
+            return fail('删除失败：' . $e->getMessage());
+        }
+    }
+       
+
+    /**
+     * 记账类型列表（无分页、无搜索）
+     */
+    public function typeList($status=1)
+    {
+        try {
+            $list = \think\facade\Db::query(
+                "SELECT id, type_name, create_time, status FROM user_bookkeeping_type WHERE status = ? ORDER BY id DESC",
+                [$status]
+            );
+            return success($list);
+        } catch (\Throwable $e) {
+            return fail('查询失败：' . $e->getMessage());
+        }
     }
 
 

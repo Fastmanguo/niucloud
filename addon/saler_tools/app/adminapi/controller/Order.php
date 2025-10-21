@@ -252,7 +252,7 @@ class Order extends BaseAdminController
             'sale_uids.default'       => [],
             'deposit.default'         => 0,
             'goods_attr_list.require' => '请选择商品规格',
-            'payment_receipt.default' => [],
+            'payment_receipt.default' => "",
             'exp_trans_price.default' => 0,
             'address_info.default'    => '',
             'lock_remark.default'     => '',
@@ -288,6 +288,7 @@ class Order extends BaseAdminController
             'lock_remark.default'     => '',
             // 'goods_num.min:1'         => 'order_goods_num_min',
         ]);
+        return success($data);
         $goods_num_list = [];
         foreach($data['goods_attr_list'] as $key => $val){
             $goods_num_list[] = $val['lock_goods_num'];
@@ -399,6 +400,76 @@ class Order extends BaseAdminController
         ]);
 
         return app(OrderService::class)->ransom($data);
+    }
+
+    /**
+     * 锁单金额统计
+     */
+    public function lockStatistics()
+    {
+        $data = $this->_vali([
+            'site_id.require' => '请输入站点id',
+            'uid.default'     => "",
+        ]);
+        return app(OrderService::class)->lockStatistics($data);
+    }
+
+    /**
+     * 锁单比例统计
+     */
+    public function lockProportion()
+    {
+        $data = $this->_vali([
+            'site_id.require' => '请输入站点id',
+            'uid.default'     => "",
+        ]);
+        return app(OrderService::class)->lockProportion($data);
+    }
+
+    /**
+     * 获取店铺员工信息
+     */
+    public function getPersonInfo()
+    {
+        $data = $this->_vali([
+            'site_id.require' => '请输入站点id',
+        ]);
+        return app(OrderService::class)->getPersonInfo($data);
+    }
+
+    /**
+     * 记账类型添加
+     */
+    public function addType()
+    {
+        $data = $this->_vali([
+            'type_name.require' => '请输入记账类型名称',
+            "status.default" => 1,
+        ]);
+        $data['create_time'] = time();
+        return app(OrderService::class)->addType($data);
+    }
+
+    /**
+     * 记账类型删除
+     */
+    public function delType()
+    {
+        $data = $this->_vali([
+            'type_id.require' => '请输入记账类型id',
+        ]);
+        return app(OrderService::class)->delType($data);
+    }
+
+    /**
+     * 记账类型列表
+     */
+    public function typeList()
+    {   
+        $data = $this->_vali([
+            "status.default" => 1,
+        ]);
+        return app(OrderService::class)->typeList($data['status']);
     }
 
 

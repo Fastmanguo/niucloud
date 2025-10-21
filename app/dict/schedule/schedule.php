@@ -25,6 +25,19 @@ return [
         'class' => 'app\job\schedule\SiteExpireClose',
         'function' => ''
     ],
+    [
+        'key' => 'goods_cl_status_reset',
+        'name' => '商品擦亮状态自动重置',
+        'desc' => '每天凌晨0点将所有商品的cl_status修改为0',
+        'time' => [
+            'type' => 'day',
+            'day' => 1,
+            'hour' => 0,
+            'min' => 0
+        ],
+        'class' => 'app\job\schedule\GoodsClStatusReset',
+        'function' => ''
+    ],
 //    [
 //        'key' => 'site_stat',
 //        'name' => '站点统计',

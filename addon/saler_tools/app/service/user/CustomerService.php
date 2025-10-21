@@ -895,7 +895,6 @@ class CustomerService extends BaseAdminService
       */
     public function ComplaintAdd($data){
         $data['create_time'] = time();
-        return success($data);
         $res = (new ComplaintModel())->save($data);
         if($res){
             return success('添加成功');
@@ -904,7 +903,37 @@ class CustomerService extends BaseAdminService
         }
     }
 
-
-
+    /**
+     * 用户反馈信息入库
+     */
+    public function FeedBack($data){
+        try {
+            // 获取数据库连接
+            $db = \think\facade\Db::connect();
+            
+            // 准备SQL语句
+            $sql = "INSERT INTO feed_back (uid, feedback_desc, feedback_images, create_time) VALUES (?, ?, ?, ?)";
+            
+            // 准备参数
+            $params = [
+                $data['uid'],
+                $data['feedback_desc'],
+                $data['feedback_images'],
+                $data['create_time'],
+            ];
+            
+            // 执行SQL
+            $result = $db->execute($sql, $params);
+            
+            if ($result) {
+                return success('反馈提交成功');
+            } else {
+                return fail('反馈提交失败');
+            }
+            
+        } catch (\Exception $e) {
+            return fail('反馈提交异常：' . $e->getMessage());
+        }
+    }
 
 }

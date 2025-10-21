@@ -43,11 +43,17 @@ class GoodsService extends BaseAdminService
         $model = new GoodsModel();
 
         $field = 'goods_id,site_id,goods_cover,goods_video,goods_image,condition,detail_image,category_id,goods_name,goods_desc,goods_attribute
-        ,goods_attachment,brand_id,series_id,model_id,peer_price,update_time,currency_code,goods_attr_list';
+        ,goods_attachment,brand_id,series_id,model_id,peer_price,update_time,currency_code,goods_attr_list,cl_status';
+        
+        // 添加cl_status排序，让cl_status=1的商品优先展示
+        $new_order = [
+            'cl_status' => 'desc',  // 优先展示cl_status=1的商品
+            'goods_id' => 'desc'    // 其次按商品ID降序
+        ];
 
         $model = $model->where($where)->withSearch(['category_id', 'search', 'site_id', 'brand_id'], $data)
             ->field($field)
-            ->order($order);
+            ->order($new_order);
 
         $result = $this->pageQuery($model);
 

@@ -21,6 +21,7 @@ use addon\saler_tools\app\service\order\OrderService;
 use addon\saler_tools\app\service\shop\ShopService;
 use think\db\Query;
 use think\db\Raw;
+use think\facade\Db;
 use app\model\sys\SysUser;
 use app\model\member\CustomerModel;
 /**
@@ -253,7 +254,7 @@ class GoodsService extends BaseAdminService
         }
         $goods_attr_list = json_decode($goods['goods_attr_list'],true);
         foreach($goods_attr_list as $key => $value){
-            $goods_attr_list[$key]['lock_goods_num'] = 1;
+            $goods_attr_list[$key]['lock_goods_num'] = 0;
         }
         $goods['goods_attr_list'] = $goods_attr_list;
         
@@ -894,5 +895,27 @@ class GoodsService extends BaseAdminService
             'zy_total_cost_price' => array_sum($zy_total_cost_list),
         ]);
     }
+
+    /**
+     * 商品擦亮
+     */
+    public function goodsCl($data)
+    {
+        // 查询已上架且符合site_id的商品
+        $sql = "SELECT * FROM saler_tools_goods WHERE is_sale = 1 AND site_id = :site_id";
+        $goods_list = Db::query($sql, ['site_id' => $data['site_id']]);
+        
+        if (empty($goods_list)) {
+            return fail('当前没有已上架商品');
+        }
+        
+        // 更新cl_status
+        $update_sql = "UPDATE saler_tools_goods SET cl_status = 1 WHERE is_sale = 1 AND site_id = :site_id";
+        $update_result = Db::execute($update_sql, ['site_id' => $data['site_id']]);
+        
+        return success("商品已擦亮");
+    }
+
+
 
 }
