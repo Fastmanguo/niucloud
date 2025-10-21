@@ -973,21 +973,25 @@ class CustomerService extends BaseAdminService
             
             // 创建圆形白色底片的二维码
             $final_path = $this->createCircularQrCode($qr_path, $file_path);
-            
-            if ($final_path && is_file($final_path)) {
-                // 删除临时文件
-                if (is_file($qr_path)) {
-                    unlink($qr_path);
-                }
+            return success([
+                'qrcode_url' => $final_path,
+                'qrcode_path' => $final_path,
+                'url' => $url
+            ]);
+            // if ($final_path && is_file($final_path)) {
+            //     // 删除临时文件
+            //     if (is_file($qr_path)) {
+            //         unlink($qr_path);
+            //     }
                 
-                return success([
-                    'qrcode_url' => $final_path,
-                    'qrcode_path' => $final_path,
-                    'url' => $url
-                ], '二维码生成成功');
-            } else {
-                return fail('圆形二维码生成失败');
-            }
+            //     return success([
+            //         'qrcode_url' => $final_path,
+            //         'qrcode_path' => $final_path,
+            //         'url' => $url
+            //     ]);
+            // } else {
+            //     return fail('圆形二维码生成失败');
+            // }
             
         } catch (\Exception $e) {
             return fail('二维码生成异常：' . $e->getMessage());
@@ -1023,8 +1027,8 @@ class CustomerService extends BaseAdminService
             }
 
             // 开启透明通道并保存透明色
-            imagealphablending($qr_image, true);
-            imagesavealpha($qr_image, true);
+            imagealphablending($qr_image, false);
+            imagesavealpha($qr_image, false);
 
             // 对二维码进行二值化处理，确保纯黑纯白
             $qr_w = imagesx($qr_image);
