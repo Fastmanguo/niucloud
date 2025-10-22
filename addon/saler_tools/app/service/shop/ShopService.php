@@ -50,6 +50,21 @@ class ShopService extends BaseAdminService
         if($shop['certificate_images']){
             $shop['certificate_images'] = json_decode($shop['certificate_images'][0], true);
         }
+        
+        // 检查该店铺是否有已上架且已擦亮的商品
+        $clStatus = 0;
+        $clGoodsCount = (new GoodsModel())->where('site_id', $shop['site_id'])
+            ->where('is_sale', 1)
+            ->where('cl_status', 1)
+            ->where('deleted_time', 0)
+            ->count();
+        
+        if ($clGoodsCount > 0) {
+            $clStatus = 1;
+        }
+        
+        $shop['cl_status'] = $clStatus;
+        
         return success($shop);
     }
 

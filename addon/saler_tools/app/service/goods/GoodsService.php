@@ -100,6 +100,25 @@ class GoodsService extends BaseAdminService
 
         $resultList = $this->pageQuery($model);
         
+        // 批量按 site_id 关联店铺信息
+        $siteIds = array_unique(array_column($resultList['data'], 'site_id'));
+        $siteIds = array_filter($siteIds);
+        $shopInfoMap = [];
+        if (!empty($siteIds)) {
+            $shopList = \think\facade\Db::name('saler_tools_shop')
+                ->whereIn('site_id', $siteIds)
+                ->field('site_id,shop_name,logo,address')
+                ->select()
+                ->toArray();
+            foreach ($shopList as $shop) {
+                $shopInfoMap[$shop['site_id']] = [
+                    'shop_name' => $shop['shop_name'] ?? '',
+                    'shop_logo' => $shop['logo'] ?? '',
+                    'shop_address' => $shop['address'] ?? '',
+                ];
+            }
+        }
+        
         foreach ($resultList['data'] as $key=>$val){
             $create_time = $val['create_time'];
             $days = ceil((time() - strtotime($create_time))/86400);
@@ -125,6 +144,17 @@ class GoodsService extends BaseAdminService
                 }
             }
             
+            // 追加店铺信息为指定字段名
+            $siteId = $val['site_id'] ?? 0;
+            if ($siteId && isset($shopInfoMap[$siteId])) {
+                $resultList['data'][$key]['shop_name'] = $shopInfoMap[$siteId]['shop_name'];
+                $resultList['data'][$key]['shop_logo'] = $shopInfoMap[$siteId]['shop_logo'];
+                $resultList['data'][$key]['shop_address'] = $shopInfoMap[$siteId]['shop_address'];
+            } else {
+                $resultList['data'][$key]['shop_name'] = '';
+                $resultList['data'][$key]['shop_logo'] = '';
+                $resultList['data'][$key]['shop_address'] = '';
+            }
         }
 
         return success($resultList);

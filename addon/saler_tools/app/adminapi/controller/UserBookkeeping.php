@@ -36,7 +36,29 @@ class UserBookkeeping extends BaseController
             $data['images'] = json_encode($data['images']);
         }
         $data['create_time'] = strtotime($data['create_time']);
+        $data['update_time'] = time();
         return (new UserBookkeepingService())->add($data);
+    }
+
+    /**
+     * 编辑记账
+     */
+    public function edit(){
+        $data = $this->_vali([
+            'id.require'   => "请输入记账ID",
+            'price.require'   => "请输入金额",
+            'f_id.require'   => "请输入分类id",
+            'create_time.require'   => "请输入交易时间",
+            'type.require'   => "请输入类型",
+            'images.default'   => "",
+            'remarks.default'   => "",
+        ]);
+        if($data['images']){
+            $data['images'] = json_encode($data['images']);
+        }
+        $data['create_time'] = strtotime($data['create_time']);
+        
+        return (new UserBookkeepingService())->edit($data);
     }
 
     /**
@@ -47,6 +69,8 @@ class UserBookkeeping extends BaseController
             'uid.default'   => [],
             'f_id.default'   => [],
             "month.default"   => "",
+            'page.default'   => 1,
+            'limit.default'   => 10,
         ]);
         return (new UserBookkeepingService())->list($data);
     }
@@ -59,5 +83,15 @@ class UserBookkeeping extends BaseController
             'id.require'   => "请输入记账ID",
         ]);
         return (new UserBookkeepingService())->details($data['id']);
+    }
+
+    /**
+     * 删除记账
+     */
+    public function del(){
+        $data = $this->_vali([
+            'id.require'   => "请输入记账ID",
+        ]);
+        return (new UserBookkeepingService())->del($data['id']);
     }
 }

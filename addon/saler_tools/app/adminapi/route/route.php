@@ -474,5 +474,12 @@ Route::group('saler_tools/pay', function () {
         Route::post('notify', 'addon\saler_tools\app\adminapi\controller\SalerToolsPay@alipayNotify');
         Route::get('return', 'addon\saler_tools\app\adminapi\controller\SalerToolsPay@alipayReturn');
     });
+    // 微信支付
+    Route::group('wechat', function () {
+        Route::post('native', 'addon\\saler_tools\\app\\adminapi\\controller\\SalerToolsPay@wechatNative');
+        Route::post('h5', 'addon\\saler_tools\\app\\adminapi\\controller\\SalerToolsPay@wechatH5');
+        Route::post('app', 'addon\\saler_tools\\app\\adminapi\\controller\\SalerToolsPay@wechatApp');
+        Route::post('notify', 'addon\\saler_tools\\app\\adminapi\\controller\\SalerToolsPay@wechatNotify');
+    });
 });
 

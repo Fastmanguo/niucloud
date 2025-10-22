@@ -175,6 +175,9 @@ Route::group('saler_tools/bookkeeping', function () {
     Route::post('add', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@add');
     Route::post('list', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@list');
     Route::post('details', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@details');
+    Route::post('del', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@del');
+    Route::post('edit', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@edit');
+    
 });
 
 
