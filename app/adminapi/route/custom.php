@@ -139,6 +139,10 @@ Route::group('saler_tools/customer', function () {
     Route::post('feed_back', 'addon\saler_tools\app\adminapi\controller\Customer@FeedBack');
     Route::post('goods_cl', 'addon\saler_tools\app\adminapi\controller\Goods@goodsCl');
     Route::post('generate_qr_code', 'addon\saler_tools\app\adminapi\controller\Customer@generateQrCode');
+    Route::post('get_Cktj', 'addon\saler_tools\app\adminapi\controller\Goods@getCktj');
+    Route::post('get_goods_type_details', 'addon\saler_tools\app\adminapi\controller\Goods@getGoodsTypeDetails');
+    Route::post('get_person_order', 'addon\saler_tools\app\adminapi\controller\Goods@getPersonOrder');
+
 
         
 });
@@ -177,6 +181,14 @@ Route::group('saler_tools/bookkeeping', function () {
     Route::post('details', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@details');
     Route::post('del', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@del');
     Route::post('edit', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@edit');
+    Route::post('get_salary_list', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@getSalaryList');
+    Route::post('get_salary_month_details', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@getSalaryMonthDetails');
+    Route::post('give_price', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@givePrice');
+    Route::post('give_price_edit', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@givePriceEdit');
+    Route::post('give_price_all', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@givePriceAll');
+    Route::post('get_user_price', 'addon\saler_tools\app\adminapi\controller\UserBookkeeping@getUserPrice');
+
+
     
 });
 

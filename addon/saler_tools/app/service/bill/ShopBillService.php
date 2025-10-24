@@ -31,6 +31,9 @@ class ShopBillService extends BaseAdminService
         if (!empty($params['is_recycle'])) {
             $model = $model->onlyTrashed();
         }
+        
+        // 按创建时间倒序排序
+        $model = $model->order('create_time', 'desc');
 
         return success($this->pageQuery($model));
     }

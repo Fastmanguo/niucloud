@@ -65,6 +65,16 @@ class ShopService extends BaseAdminService
         
         $shop['cl_status'] = $clStatus;
         
+        if($shop['shop_name'] == ""){
+            $shop['shop_name'] = "无";
+        }
+        if($shop['logo'] == ""){
+            $shop['logo'] = "https:\/\/84000-1333979078.cos.ap-shanghai.myqcloud.com\/upload\/attachment\/image\/0\/202510\/24\/17612696865a6e04ab683cc068542cf4f3cc4c1530_tencent.png";
+        }
+        if($shop['address'] == ""){
+            $shop['address'] = "无";
+        }
+
         return success($shop);
     }
 

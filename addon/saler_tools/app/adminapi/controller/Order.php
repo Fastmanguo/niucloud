@@ -56,15 +56,32 @@ class Order extends BaseAdminController
         $all_data['type'] = "sale";
         $all = app(OrderService::class)->lists($all_data,['order_id'=>'desc'],1,$data['site_id']);
 
-        $all_data['order_status'] = "ADD_ORDER";
-        $d_all = app(OrderService::class)->lists($all_data,['order_id'=>'desc'],1,$data['site_id']);
+        $d_all_data = $all_data;
+        $d_all_data['is_delivery'] = 0;
+        $d_all_data['is_paid'] = 1;
+        $d_all = app(OrderService::class)->lists($d_all_data,['order_id'=>'desc'],1,$data['site_id']);
 
-        $all_data['order_status'] = "CANCEL_ORDER";
-        $y_all = app(OrderService::class)->lists($all_data,['order_id'=>'desc'],1,$data['site_id']);
+        $yfh_all_data = $all_data;
+        $yfh_all_data['is_delivery'] = 1;
+        $yfh_all_data['is_paid'] = 1;
+        $yfh_all = app(OrderService::class)->lists($yfh_all_data,['order_id'=>'desc'],1,$data['site_id']);
+
+        $y_all_data = $all_data;
+        $y_all_data['order_status'] = "CANCEL_ORDER";
+        $y_all = app(OrderService::class)->lists($y_all_data,['order_id'=>'desc'],1,$data['site_id']);
+
+        $djk_all_data = $all_data;
+        $djk_all_data['is_paid'] = 0;
+        // $djk_all_data['order_status'] = ['<>', 'CANCEL_ORDER'];
+        $djk_all = app(OrderService::class)->lists($djk_all_data,['order_id'=>'desc'],1,$data['site_id']);
+
+
         return success([
             'all' => $all,
             'd_shipped' => $d_all,
             'y_cancel' => $y_all,
+            'yfh_all' => $yfh_all,
+            'djk_all' => $djk_all,
         ]);
     }
 
@@ -136,6 +153,7 @@ class Order extends BaseAdminController
             'paid_receipt.default'          => [],
             'paid_remark.default'           => '',
             'transaction_time.query'        => '',// 销售时间
+            'shipment_type.require' => '请输入发货方式',
         ]);
 
 
@@ -181,6 +199,7 @@ class Order extends BaseAdminController
             'customer_id.default'           => '',
             'category_id.default'           => '',
             "goods_attr_list.default"       => '',
+            'shipment_type.require' => '请输入发货方式',
         ]);
 
 
@@ -371,6 +390,7 @@ class Order extends BaseAdminController
         $data = $this->_vali([
             'order_id.require'        => 'please_select_order',
             'delivery_remark.require' => '发货备注不能为空',
+            'logistics_code.default' => '',
         ]);
 
         return app(OrderService::class)->send($data);
@@ -445,6 +465,7 @@ class Order extends BaseAdminController
         $data = $this->_vali([
             'type_name.require' => '请输入记账类型名称',
             "status.default" => 1,
+            'uid.require'     => "请输入用户id",
         ]);
         $data['create_time'] = time();
         return app(OrderService::class)->addType($data);
@@ -468,8 +489,9 @@ class Order extends BaseAdminController
     {   
         $data = $this->_vali([
             "status.default" => 1,
+            'uid.require'     => "请输入用户id",
         ]);
-        return app(OrderService::class)->typeList($data['status']);
+        return app(OrderService::class)->typeList($data['status'],$data['uid']);
     }
 
 

@@ -94,4 +94,84 @@ class UserBookkeeping extends BaseController
         ]);
         return (new UserBookkeepingService())->del($data['id']);
     }
+
+
+    /**
+     * 获取薪资管理列表
+     */
+    public function getSalaryList(){
+        $data = $this->_vali([
+            'year.require'   => "请输入年份",
+            'site_id.require'   => "请输入店铺id",
+        ]);
+
+        return (new UserBookkeepingService())->getSalaryList($data);
+    }
+
+    /**
+     * 获取薪资管理详情-按月份
+     */
+    public function getSalaryMonthDetails(){
+        $data = $this->_vali([
+            'month.require'   => "请输入年月时间",
+            'site_id.require'   => "请输入店铺id",
+            'search.default'   => "",
+        ]);
+
+        return (new UserBookkeepingService())->getSalaryMonthDetails($data);
+    }
+
+    /**
+     * 给用户发放薪资
+     */
+    public function givePrice(){
+        $data = $this->_vali([
+            'uid.require'   => "请输入用户ID",
+            'should_pirce.default'   => 0,
+            'actual_pirce.require'   => "请输入实际薪资",
+            'remarks.default'   => "",
+            'create_time.default'   => time(),
+            'month.require'   => "请输入年月时间",
+        ]);
+
+        return (new UserBookkeepingService())->givePrice($data);
+    }
+
+    /**
+     * 编辑已发放用户薪资
+     */
+    public function givePriceEdit(){
+        $data = $this->_vali([
+            'id.require'   => "请输入薪资ID",
+            'should_pirce.default'   => 0,
+            'actual_pirce.require'   => "请输入实际薪资",
+            'remarks.default'   => "",
+        ]);
+        return (new UserBookkeepingService())->givePriceEdit($data);
+    }
+
+    /**
+     * 给所有用户发放薪资
+     */
+    public function givePriceAll(){
+        $data = $this->_vali([
+            'xz_list.require'   => "请输入薪资列表",
+            'month.require'   => "请输入年月时间",
+        ]);
+
+        return (new UserBookkeepingService())->givePriceAll($data);
+    }
+
+    /**
+     * 获取用户销售金额详情
+     */
+    public function getUserPrice(){
+        $data = $this->_vali([
+            'uid.require'   => "请输入用户ID",
+            'month.require'   => "请输入年月时间",
+        ]);
+        return (new UserBookkeepingService())->getUserPrice($data);
+    }
+
+    
 }

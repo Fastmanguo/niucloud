@@ -105,6 +105,11 @@ class OrderService extends BaseAdminService
             ->with(['createName', 'lockName'])
             ->order($order);
 
+        // 入参 is_paid=0 时，排除已取消订单
+        if (isset($params['is_paid']) && $params['is_paid'] !== '' && strval($params['is_paid']) === '0') {
+            $model->where('order_status', '<>', self::CANCEL_ORDER);
+        }
+
         if (!empty($params['end_time'])) {
             $model->where('transaction_time', '<=', $params['end_time']);
         }
@@ -218,7 +223,6 @@ class OrderService extends BaseAdminService
         }
 
         if (!in_array($order->order_status, [self::ADD_ORDER, self::LOCK_ORDER])) return fail('order_status_error');
-        if (!in_array($order['order_status'], [self::ADD_ORDER, self::LOCK_ORDER])) return fail('order_status_error');
 
 
         $order_model->startTrans();
@@ -944,6 +948,7 @@ class OrderService extends BaseAdminService
             'delivery_uid'    => $this->uid,
             'delivery_remark' => $data['delivery_remark'] ?? '',
             'delivery_time'   => date('Y-m-d H:i:s'),
+            'logistics_code'  => $data['logistics_code'] ?? '',
         ];
 
         $order->save($update);
@@ -1278,7 +1283,7 @@ class OrderService extends BaseAdminService
 
                 //利率interest_rate
                 $list[$key]['interest_rate'] = 0;
-                if(!empty($order_info_pirce)){
+                if(!empty($order_info_pirce) && $list[$key]['total_cost'] > 0){
                     $list[$key]['interest_rate'] = round($list[$key]['profit']/$list[$key]['total_cost']*100,4);
                 }
 
@@ -1303,8 +1308,8 @@ class OrderService extends BaseAdminService
         try {
             // 校验名称唯一性
             $existing = \think\facade\Db::query(
-                "SELECT COUNT(*) as count FROM user_bookkeeping_type WHERE type_name = ?",
-                [$type_name]
+                "SELECT COUNT(*) as count FROM user_bookkeeping_type WHERE type_name = ? AND status = ?",
+                [$type_name,$data['status']]
             );
             
             if ($existing[0]['count'] > 0) {
@@ -1312,8 +1317,8 @@ class OrderService extends BaseAdminService
             }
             
             // 使用原生SQL插入，添加status字段
-            $sql = "INSERT INTO user_bookkeeping_type (type_name, create_time, status) VALUES (?, ?, ?)";
-            \think\facade\Db::execute($sql, [$type_name, $create_time, $status]);
+            $sql = "INSERT INTO user_bookkeeping_type (type_name, create_time, status,uid) VALUES (?, ?, ?,?)";
+            \think\facade\Db::execute($sql, [$type_name, $create_time, $status,$data['uid']]);
             
             return success('添加成功');
         } catch (\Throwable $e) {
@@ -1329,6 +1334,16 @@ class OrderService extends BaseAdminService
         $type_id = $data['type_id'];
         
         try {
+            // 检查是否绑定了记账记录
+            $bind_count = \think\facade\Db::query(
+                "SELECT COUNT(*) as count FROM user_bookkeeping WHERE f_id = ?",
+                [$type_id]
+            )[0]['count'];
+            
+            if ($bind_count > 0) {
+                return fail('已绑定记账不能删除');
+            }
+            
             // 使用原生SQL直接删除
             $sql = "DELETE FROM user_bookkeeping_type WHERE id = ?";
             $result = \think\facade\Db::execute($sql, [$type_id]);
@@ -1347,12 +1362,12 @@ class OrderService extends BaseAdminService
     /**
      * 记账类型列表（无分页、无搜索）
      */
-    public function typeList($status=1)
+    public function typeList($status=1,$uid=0)
     {
         try {
             $list = \think\facade\Db::query(
-                "SELECT id, type_name, create_time, status FROM user_bookkeeping_type WHERE status = ? ORDER BY id DESC",
-                [$status]
+                "SELECT id, type_name, create_time, status FROM user_bookkeeping_type WHERE status = ? AND uid = ? ORDER BY id DESC",
+                [$status,$uid]
             );
             return success($list);
         } catch (\Throwable $e) {

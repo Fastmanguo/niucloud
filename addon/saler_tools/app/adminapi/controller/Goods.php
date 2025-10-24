@@ -11,6 +11,8 @@ namespace addon\saler_tools\app\adminapi\controller;
 use addon\saler_tools\app\common\BaseAdminController;
 use addon\saler_tools\app\service\goods\GoodsService;
 
+use function PHPSTORM_META\type;
+
 /**
  * 商品管理
  * Class Goods
@@ -437,5 +439,40 @@ class Goods extends BaseAdminController
         return app(GoodsService::class)->goodsCl($data);
     }
 
+
+    /**
+     * 仓库统计
+     */
+    public function getCktj()
+    {
+        $data = $this->_vali([
+            'site_id.query'        => '请输入店铺id',
+            'ck_type.default'        => '',
+        ]);
+        return app(GoodsService::class)->getCktj($data);
+    }
+
+    /**
+     * 获取商品各分类详情数据
+     */
+    public function getGoodsTypeDetails(){
+        $data = $this->_vali([
+            'site_id.require'   => "请输入店铺id",
+            'type.default'   => 1,
+        ]);
+        return app(GoodsService::class)->getGoodsTypeDetails($data);
+    }
+
+
+    /**
+     * 根据用户类型获取商品信息
+     */
+    public function getPersonOrder(){
+        $data = $this->_vali([
+            'site_id.require'   => "请输入店铺id",
+            'type.default'   => 1,
+        ]);
+        return app(GoodsService::class)->getPersonOrder($data);
+    }
 
 }

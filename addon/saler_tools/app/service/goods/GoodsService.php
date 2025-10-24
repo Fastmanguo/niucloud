@@ -322,6 +322,17 @@ class GoodsService extends BaseAdminService
             $goods['customer_name'] = '';
         }
         $goods['detail_image'] = json_decode($goods['detail_image'],true);
+
+        // 根据site_id查询店铺logo
+        $shop_info = Db::table('saler_tools_shop')
+            ->where('site_id', $goods['site_id'])
+            ->field('logo, shop_name, address')
+            ->find();
+        
+        // 设置店铺信息，为空时使用默认值'无'
+        $goods['shop_logo'] = !empty($shop_info['logo']) ? $shop_info['logo'] : 'https://84000-1333979078.cos.ap-shanghai.myqcloud.com/upload/attachment/image/0/202510/24/17612696865a6e04ab683cc068542cf4f3cc4c1530_tencent.png';
+        $goods['shop_name'] = !empty($shop_info['shop_name']) ? $shop_info['shop_name'] : '无';
+        $goods['shop_address'] = !empty($shop_info['address']) ? $shop_info['address'] : '无';
         return success($goods);
         
     }
@@ -946,6 +957,291 @@ class GoodsService extends BaseAdminService
         return success("商品已擦亮");
     }
 
+    /**
+     * 仓库统计
+     */
+    public function getCktj($data)
+    {
+        $monthlyData = [];
+        
+        // 获取当前月份的开始日期
+        $currentYearMonth = date('Y-m');
+        $currentMonthStart = $currentYearMonth . '-01';
+        
+        // 循环12个月（包括当前月）
+        for ($i = 0; $i < 12; $i++) {
+            // 计算每个月的开始日期
+            $monthStart = date('Y-m-d', strtotime("$currentMonthStart -$i months"));
+            $yearMonth = date('Y-m', strtotime($monthStart));
+            // 计算该月的结束日期
+            $monthEnd = date('Y-m-t', strtotime($monthStart));
+            // 计算时间格式（不再使用时间戳）
+            $startTime = $monthStart . ' 00:00:00';
+            $endTime = $monthEnd . ' 23:59:59';
+            // 添加每月的开始和结束时间到结果数组
+            $monthlyData[] = [
+                'year_month' => $yearMonth,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'month_text' => date('Y年m月', strtotime($monthStart))
+            ];
+        }
+
+        foreach($monthlyData as $key => $val){
+            $where = [
+                ['site_id', '=', $data['site_id']],
+                ['deleted_time', '=', 0],
+                ['create_time', '<=', $val['end_time']],
+                ['create_time', '>=', $val['start_time']],
+            ];
+
+            // 如果传入了ck_type且非空，则按照goods_attribute字段进行筛选
+            if (!empty($data['ck_type'])) {
+                $where[] = ['goods_attribute', '=', $data['ck_type']];
+            }
+            
+            // 查询商品表数据
+            $goodsModel = new GoodsModel();
+            $goodsData = $goodsModel->where($where)
+                ->field('goods_id, goods_name, goods_cover, price, total_cost, goods_attribute, create_time,goods_attr_list')
+                ->select()
+                ->toArray();
+            
+            // 统计数据
+            $stock = $goodsModel->where($where)->sum('stock') ?? 0;
+            $price_list = [];
+            foreach($goodsData as $k => $v){
+                if($v['goods_attr_list']){                    
+                    $goods_attr_list = json_decode($v['goods_attr_list'], true);
+                    foreach($goods_attr_list as $kk => $vv){                        
+                        $price_list[] = $vv['goods_num'] * $vv['price'];
+                    }
+                }
+            }
+            $monthlyData[$key]['price'] = array_sum($price_list);
+            $monthlyData[$key]['stock'] = $stock;
+           
+            
+        }
+        
+        return success($monthlyData);
+    }
 
 
+    /**
+     * 获取商品各维度分组统计数据
+     * type=1:按商品分类(category_id)分组
+     * type=2:按商品品牌(brand_id)分组
+     * type=3:按商品成色(condition)分组
+     */
+    public function getGoodsTypeDetails($data){
+        $site_id = $data['site_id'];
+        $type = $data['type'] ?? 1;
+        
+        // 基础查询条件
+        $where = [
+            ['site_id', '=', $site_id],
+            ['deleted_time', '=', 0]
+        ];
+        
+        // 查询商品数据，根据类型调整查询字段
+        $goodsModel = new GoodsModel();
+        $fields = 'goods_id, goods_name, goods_cover, price, total_cost, category_id, brand_id, condition, goods_attribute, create_time, goods_attr_list';
+        $goodsList = $goodsModel->where($where)
+            ->field($fields)
+            ->select()
+            ->toArray();
+        
+        // 初始化变量
+        $groupedData = [];
+        $totalSummary = [
+            'total_count' => 0,
+            'total_price' => 0,
+            'total_cost' => 0,
+            'groups_count' => 0
+        ];
+        
+        // 如果是按品牌分组，需要获取品牌信息
+        $brandMap = [];
+        if ($type == 2) {
+            $brandIds = array_unique(array_column($goodsList, 'brand_id'));
+            $brandIds = array_filter($brandIds);
+            
+            if (!empty($brandIds)) {
+                // 假设品牌模型可以直接使用，如果需要导入请自行添加
+                $brandModel = new \addon\saler_tools\app\model\SalerToolsGoodsBrand();
+                $brandList = $brandModel->whereIn('brand_id', $brandIds)
+                    ->field('brand_id, brand_name')
+                    ->select()
+                    ->toArray();
+                
+                foreach ($brandList as $brand) {
+                    $brandMap[$brand['brand_id']] = $brand['brand_name'];
+                }
+            }
+        } else if ($type == 1) {
+            // 获取所有分类ID并查询对应的分类名称
+            $categoryIds = array_unique(array_column($goodsList, 'category_id'));
+            $categoryIds = array_filter($categoryIds);
+            $categoryMap = [];
+            
+            if (!empty($categoryIds)) {
+                $categoryModel = new SalerToolsGoodsCategory();
+                $categoryList = $categoryModel->whereIn('category_id', $categoryIds)
+                    ->field('category_id, category_name')
+                    ->select()
+                    ->toArray();
+                
+                foreach ($categoryList as $category) {
+                    $categoryMap[$category['category_id']] = $category['category_name'];
+                }
+            }
+        }
+        
+        // 根据type参数决定分组维度
+        foreach ($goodsList as $goods) {
+            $groupId = 0;
+            $groupName = '未知';
+            
+            if ($type == 1) {
+                // 按分类分组
+                $groupId = $goods['category_id'] ?? 0;
+                $groupName = $categoryMap[$groupId] ?? '未分类';
+            } else if ($type == 2) {
+                // 按品牌分组
+                $groupId = $goods['brand_id'] ?? 0;
+                $groupName = $brandMap[$groupId] ?? '未分类';
+            } else if ($type == 3) {
+                // 按商品成色分组
+                $condition = $goods['condition'] ?? '';
+                if ($condition == 'condition_new') {
+                    $groupId = 1;
+                    $groupName = '全新';
+                } else if ($condition == 'condition_used') {
+                    $groupId = 2;
+                    $groupName = '二手';
+                } else {
+                    $groupId = 0;
+                    $groupName = '未知';
+                }
+            }
+            
+            // 初始化该分组的数据
+            if (!isset($groupedData[$groupId])) {
+                $groupedData[$groupId] = [
+                    'group_id' => $groupId,
+                    'group_name' => $groupName,
+                    'count' => 0,
+                    'total_price' => 0,
+                    'total_cost' => 0
+                ];
+                $totalSummary['groups_count']++;
+            }
+            
+            // 处理商品属性列表，计算价格
+            $goodsPrice = 0;
+            $goodsCost = 0;
+            $goodsNum = 0;
+            if (!empty($goods['goods_attr_list'])) {
+                $goodsAttrList = json_decode($goods['goods_attr_list'], true);
+                foreach ($goodsAttrList as $attrItem) {
+                    $goodsPrice += ($attrItem['price'] ?? 0) * ($attrItem['goods_num'] ?? 0);
+                    $goodsCost += ($attrItem['total_cost'] ?? 0);
+                    $goodsNum += ($attrItem['goods_num'] ?? 0);
+                }
+            }
+            
+            // 更新分组统计数据
+            $groupedData[$groupId]['count'] += $goodsNum;
+            $groupedData[$groupId]['total_price'] += $goodsPrice;
+            $groupedData[$groupId]['total_cost'] += $goodsCost;
+            
+            // 更新总统计数据
+            $totalSummary['total_count'] += $goodsNum;
+            $totalSummary['total_price'] += $goodsPrice;
+            $totalSummary['total_cost'] += $goodsCost;
+        }
+        
+        // 计算每个分组的占比百分比
+        foreach ($groupedData as &$group) {
+            $group['count_proportion'] = $totalSummary['total_count'] > 0 ? round(($group['count'] / $totalSummary['total_count']) * 100, 2) : 0;
+            $group['price_proportion'] = $totalSummary['total_price'] > 0 ? round(($group['total_price'] / $totalSummary['total_price']) * 100, 2) : 0;
+        }
+        unset($group);
+        
+        // 转换为数组格式，修改字段名称以适应不同类型
+        $result = [
+            'total_summary' => $totalSummary,
+            'group_details' => array_values($groupedData)
+        ];
+        
+        
+        return success($result);
+    }
+
+    /**
+     * 根据用户类型获取商品信息
+     * @param $params
+     * @return think\Response
+     */
+    public function getPersonOrder($params){
+        $site_id = $params['site_id'];
+        $type = $params['type'];
+        $list = (new \app\model\sys\SysUserRole())
+                ->order('is_admin desc,id desc')
+                ->with('userinfo')
+                ->append(['status_name'])
+                ->hasWhere('userinfo', [['is_del', '=', 0]])
+                ->where([['SysUserRole.site_id', '=', $site_id]])
+                ->select()
+                ->toArray();
+        
+        $goodsModel = new GoodsModel();
+        
+        foreach ($list as $key => $val) {
+            $uid = $val['uid'];
+            // 根据type参数设置不同的查询条件
+            switch ($type) {
+                case 1:
+                    // type==1时用户uid==商品表recycling_uid
+                    $where = [['site_id', '=', $site_id], ['recycling_uid', '=', $uid]];
+                    break;
+                case 2:
+                    // type==2时用户uid==商品表create_uid
+                    $where = [['site_id', '=', $site_id], ['create_uid', '=', $uid]];
+                    break;
+                case 3:
+                    // type==3时用户uid==商品表appraiser_uid
+                    $where = [['site_id', '=', $site_id], ['appraiser_uid', '=', $uid]];
+                    break;
+                default:
+                    $where = [['site_id', '=', $site_id]];
+            }
+            
+            // 查询该用户相关的商品
+            $userGoods = $goodsModel->where($where)->select()->toArray();
+            
+            // 统计商品库存和金额
+            $totalStock = 0;
+            $totalAmount = 0;
+            
+            foreach ($userGoods as $goods) {
+                $totalStock += $goods['stock'];
+                // 获取商品属性列表
+                if (!empty($goods['goods_attr_list'])) {
+                    $goodsAttrList = json_decode($goods['goods_attr_list'], true);
+                    foreach ($goodsAttrList as $attr) {
+                        $totalAmount += $attr['price'] * $attr['goods_num'];
+                    }
+                }
+            }
+            
+            // 将统计信息添加到用户数据中
+            $list[$key]['total_stock'] = $totalStock;
+            $list[$key]['total_amount'] = $totalAmount;
+            $list[$key]['goods_count'] = count($userGoods);
+        }
+
+        return success($list);
+    }
 }

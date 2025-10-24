@@ -156,6 +156,17 @@ class GoodsService extends BaseAdminService
             $goods['price'] = 0;
             $goods['total_cost'] = 0;
         }
+        
+        // 根据site_id查询店铺信息
+        $shop_info = Db::table('saler_tools_shop')
+            ->where('site_id', $goods['site_id'])
+            ->field('logo, shop_name, address')
+            ->find();
+        
+        // 设置店铺信息，为空时使用默认值'无'
+        $goods['shop_logo'] = !empty($shop_info['logo']) ? $shop_info['logo'] : 'https://84000-1333979078.cos.ap-shanghai.myqcloud.com/upload/attachment/image/0/202510/24/17612696865a6e04ab683cc068542cf4f3cc4c1530_tencent.png';
+        $goods['shop_name'] = !empty($shop_info['shop_name']) ? $shop_info['shop_name'] : '无';
+        $goods['shop_address'] = !empty($shop_info['address']) ? $shop_info['address'] : '无';
 
         return success($goods->toArray());
 
