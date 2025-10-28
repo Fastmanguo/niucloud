@@ -142,6 +142,7 @@ Route::group('saler_tools/customer', function () {
     Route::post('get_Cktj', 'addon\saler_tools\app\adminapi\controller\Goods@getCktj');
     Route::post('get_goods_type_details', 'addon\saler_tools\app\adminapi\controller\Goods@getGoodsTypeDetails');
     Route::post('get_person_order', 'addon\saler_tools\app\adminapi\controller\Goods@getPersonOrder');
+    Route::post('get_goods_long', 'addon\saler_tools\app\adminapi\controller\Goods@getGoodsLong');
 
 
         

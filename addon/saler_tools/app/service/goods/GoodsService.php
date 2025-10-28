@@ -897,6 +897,10 @@ class GoodsService extends BaseAdminService
         $total_cost_list = [];
         $jm_price_list = [];
         $zy_total_cost_list = [];
+
+        $own_goods_list = [];
+        $consignment_goods = [];
+        $pawned_goods_list = [];
         foreach($list as $key => $val){
 
             if($val['goods_attr_list']){
@@ -910,6 +914,7 @@ class GoodsService extends BaseAdminService
                 foreach($goods_attr_list as $k => $v){
                     $total_cost_list[] = $v['goods_num'] * $v['total_cost'];
                 }
+                $own_goods_list[] = $val['stock'];
             }
             
             if($val['goods_attribute'] == "consignment_goods"){
@@ -917,6 +922,7 @@ class GoodsService extends BaseAdminService
                 foreach($goods_attr_list as $k => $v){
                     $jm_price_list[] = $v['goods_num'] * $v['price'];
                 }
+                $consignment_goods[] = $val['stock'];
             }
 
             if($val['goods_attribute'] == "pawned_goods"){
@@ -924,6 +930,7 @@ class GoodsService extends BaseAdminService
                 foreach($goods_attr_list as $k => $v){
                     $zy_total_cost_list[] = $v['goods_num'] * $v['total_cost'];
                 }
+                $pawned_goods_list[] = $val['stock'];
             }
 
             }
@@ -934,6 +941,9 @@ class GoodsService extends BaseAdminService
             'total_cost_price' => array_sum($total_cost_list),
             'jm_price' => array_sum($jm_price_list),
             'zy_total_cost_price' => array_sum($zy_total_cost_list),
+            'own_goods_num' => array_sum($own_goods_list),
+            'consignment_goods_num' => array_sum($consignment_goods),
+            'pawned_goods_num' => array_sum($pawned_goods_list),
         ]);
     }
 
@@ -1197,7 +1207,16 @@ class GoodsService extends BaseAdminService
                 ->toArray();
         
         $goodsModel = new GoodsModel();
-        
+        $orderModel = new Order();
+        $result_list = array(
+            "yg_count"=>count($list),
+            "rk_amount"=>0,
+            "zk_amount"=>0,
+            "xs_amount"=>0,
+            "rk_count"=>0,
+            "zk_count"=>0,
+            "xs_count"=>0,
+        );
         foreach ($list as $key => $val) {
             $uid = $val['uid'];
             // 根据type参数设置不同的查询条件
@@ -1217,31 +1236,181 @@ class GoodsService extends BaseAdminService
                 default:
                     $where = [['site_id', '=', $site_id]];
             }
-            
+
+            if(!empty($params['start_time']) && !empty($params['end_time'])){
+                $where[] = ['create_time', '>=', $params['start_time']];
+                $where[] = ['create_time', '<=', $params['end_time']];
+            }
+            return success($where);
             // 查询该用户相关的商品
             $userGoods = $goodsModel->where($where)->select()->toArray();
-            
-            // 统计商品库存和金额
+            $orderInfo = $orderModel->where($where)->select()->toArray();
             $totalStock = 0;
             $totalAmount = 0;
-            
-            foreach ($userGoods as $goods) {
-                $totalStock += $goods['stock'];
-                // 获取商品属性列表
-                if (!empty($goods['goods_attr_list'])) {
-                    $goodsAttrList = json_decode($goods['goods_attr_list'], true);
-                    foreach ($goodsAttrList as $attr) {
-                        $totalAmount += $attr['price'] * $attr['goods_num'];
+            if(!empty($userGoods)){
+                foreach ($userGoods as $goods) {
+                    $totalStock += $goods['stock'];
+                    // 获取商品属性列表
+                    if (!empty($goods['goods_attr_list'])) {
+                        $goodsAttrList = json_decode($goods['goods_attr_list'], true);
+                        foreach ($goodsAttrList as $attr) {
+                            $totalAmount += $attr['price'] * $attr['goods_num'];
+                        }
                     }
+                }
+            }
+            $orderTotalStock = 0;
+            $orderTotalAmount = 0;
+            if(!empty($orderInfo)){
+                foreach ($orderInfo as $order) {
+                    $orderTotalAmount += $order['money'];
+                    $orderTotalStock += $order['goods_num'];
                 }
             }
             
             // 将统计信息添加到用户数据中
-            $list[$key]['total_stock'] = $totalStock;
-            $list[$key]['total_amount'] = $totalAmount;
-            $list[$key]['goods_count'] = count($userGoods);
+            $list[$key]['zk_total_stock'] = $totalStock;
+            $list[$key]['zk_total_amount'] = $totalAmount;
+            $list[$key]['zk_goods_count'] = count($userGoods);
+
+            $list[$key]['xs_order_total_stock'] = $orderTotalStock;
+            $list[$key]['xs_order_total_amount'] = $orderTotalAmount;
+            $list[$key]['xs_order_count'] = count($orderInfo);
+
+            $list[$key]['rk_stock'] = $orderTotalStock+$totalStock;
+            $list[$key]['rk_total_amount'] = $orderTotalAmount+$totalAmount;
+            $list[$key]['rk_count'] = count($orderInfo)+count($userGoods);
+
+            $result_list['rk_amount'] += $list[$key]['rk_total_amount'];
+            $result_list['zk_amount'] += $list[$key]['zk_total_amount'];
+            $result_list['xs_amount'] += $list[$key]['xs_order_total_amount'];
+            $result_list['rk_count'] += $list[$key]['rk_count'];
+            $result_list['zk_count'] += $list[$key]['zk_goods_count'];
+            $result_list['xs_count'] += $list[$key]['xs_order_count'];
+        }
+        $result_list['list'] = $list;
+        return success($result_list);
+    }
+
+    
+    /**
+      * 根据时间区间统计商品金额和库存占比
+      * @param $data
+      * @return think\Response
+      */
+    public function getGoodsLong($data){
+        $site_id = $data['site_id'];
+        $date_type = $data['date_type'];
+        
+        // 获取该站点下的所有商品
+        $model = new GoodsModel();
+        $goodsList = $model->where('site_id', $site_id)->select()->toArray();
+        
+        // 初始化统计结果
+        $totalAmount = 0; // 总金额
+        $totalStock = 0; // 总库存
+        $timeRangeData = [];
+        
+        // 根据date_type设置时间区间
+        $timeRanges = [];
+        if ($date_type == 1) {
+            // 按天统计
+            $timeRanges = [
+                ['name' => 'less_15days', 'label' => '<15天', 'days' => 15, 'min' => 0, 'max' => 15],
+                ['name' => '15_30days', 'label' => '15-30天', 'days' => 30, 'min' => 15, 'max' => 30],
+                ['name' => '30_60days', 'label' => '30-60天', 'days' => 60, 'min' => 30, 'max' => 60],
+                ['name' => 'more_60days', 'label' => '>60天', 'days' => 60, 'min' => 60, 'max' => PHP_INT_MAX]
+            ];
+        } elseif ($date_type == 2) {
+            // 按月统计
+            $timeRanges = [
+                ['name' => 'less_3months', 'label' => '<3个月', 'days' => 90, 'min' => 0, 'max' => 90],
+                ['name' => '3_6months', 'label' => '3-6个月', 'days' => 180, 'min' => 90, 'max' => 180],
+                ['name' => '6_12months', 'label' => '6-12个月', 'days' => 365, 'min' => 180, 'max' => 365],
+                ['name' => 'more_12months', 'label' => '>12个月', 'days' => 365, 'min' => 365, 'max' => PHP_INT_MAX]
+            ];
+        } elseif ($date_type == 3) {
+            // 按年统计
+            $timeRanges = [
+                ['name' => 'less_1year', 'label' => '<1年', 'days' => 365, 'min' => 0, 'max' => 365],
+                ['name' => '1_2years', 'label' => '1-2年', 'days' => 730, 'min' => 365, 'max' => 730],
+                ['name' => '2_3years', 'label' => '2-3年', 'days' => 1095, 'min' => 730, 'max' => 1095],
+                ['name' => 'more_3years', 'label' => '>3年', 'days' => 1095, 'min' => 1095, 'max' => PHP_INT_MAX]
+            ];
+        }
+        
+        // 初始化每个时间区间的数据
+        foreach ($timeRanges as $range) {
+            $timeRangeData[$range['name']] = [
+                'label' => $range['label'],
+                'amount' => 0,
+                'stock' => 0,
+                'amount_ratio' => 0,
+                'stock_ratio' => 0
+            ];
+        }
+        
+        // 计算每个商品的金额和库存，并按时间区间分组
+        foreach ($goodsList as $goods) {
+            // 计算商品金额
+            $goodsAmount = 0;
+            if (!empty($goods['goods_attr_list'])) {
+                $goodsAttrList = json_decode($goods['goods_attr_list'], true);
+                if (is_array($goodsAttrList)) {
+                    foreach ($goodsAttrList as $attr) {
+                        $price = $attr['price'] ?? 0;
+                        $goodsNum = $attr['goods_num'] ?? 0;
+                        $goodsAmount += $price * $goodsNum;
+                    }
+                }
+            }
+            
+            // 获取商品库存
+            $goodsStock = $goods['stock'] ?? 0;
+            
+            // 累加到总金额和总库存
+            $totalAmount += $goodsAmount;
+            $totalStock += $goodsStock;
+            
+            // 计算商品创建时间到现在的天数
+            $createTime = strtotime($goods['create_time']);
+            $now = time();
+            $days = floor(($now - $createTime) / (24 * 3600));
+            
+            // 按时间区间分组
+            foreach ($timeRanges as $range) {
+                if ($days > $range['min'] && $days <= $range['max']) {
+                    $timeRangeData[$range['name']]['amount'] += $goodsAmount;
+                    $timeRangeData[$range['name']]['stock'] += $goodsStock;
+                    break;
+                }
+            }
+        }
+        
+        // 计算每个时间区间的占比
+        foreach ($timeRangeData as $key => &$data) {
+            $data['amount_ratio'] = $totalAmount > 0 ? round(($data['amount'] / $totalAmount) * 100, 2) : 0;
+            $data['stock_ratio'] = $totalStock > 0 ? round(($data['stock'] / $totalStock) * 100, 2) : 0;
+        }
+        
+        // 将金额转换为万单位并保留两位小数
+        $totalAmountWan = round($totalAmount / 10000, 2);
+        foreach ($timeRangeData as $key => &$data) {
+            $data['amount'] = round($data['amount'] / 10000, 2);
+        }
+        
+        $result_list = [];
+        foreach ($timeRangeData as $key => &$data) {
+            $result_list[] = $data;
         }
 
-        return success($list);
+        // 构建最终结果
+        $result = [
+            'total_amount' => $totalAmountWan,
+            'total_stock' => $totalStock,
+            'time_range_data' => $result_list
+        ];
+        
+        return success($result);
     }
 }

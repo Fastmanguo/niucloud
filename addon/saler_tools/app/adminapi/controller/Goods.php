@@ -471,8 +471,39 @@ class Goods extends BaseAdminController
         $data = $this->_vali([
             'site_id.require'   => "请输入店铺id",
             'type.default'   => 1,
+            'date_type.default'   => "",
+            'start_time.default'   => "",
+            'end_time.default'   => "",
         ]);
+        if($data['date_type'] == 1 and $data['start_time']){
+            $start_time = $data['start_time'];
+            $data['start_time'] = $start_time . ' 00:00:00';
+            $data['end_time'] = $start_time . ' 23:59:59';
+        }elseif($data['date_type'] == 2 and $data['start_time']){
+            $start_time = $data['start_time'];
+            $data['start_time'] = $start_time . '-01 00:00:00';
+            $data['end_time'] = $start_time . '-31 23:59:59';
+        }elseif($data['date_type'] == 3 and $data['start_time']){
+            $start_time = $data['start_time'];
+            $data['start_time'] = $start_time . '-01-01 00:00:00';
+            $data['end_time'] = $start_time . '-12-31 23:59:59';
+        }
+
         return app(GoodsService::class)->getPersonOrder($data);
+    }
+
+    /**
+     * 获取商品在库时长
+     * 1:日
+     * 2:月
+     * 3:年
+     */
+    public function getGoodsLong(){
+        $data = $this->_vali([
+            'site_id.require'   => "请输入店铺id",
+            'date_type.default'   => 1,
+        ]);
+        return app(GoodsService::class)->getGoodsLong($data);
     }
 
 }
