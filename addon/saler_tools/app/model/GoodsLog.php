@@ -26,4 +26,15 @@ class GoodsLog extends BaseModel
         'option_data' => 'json'
     ];
 
+    protected $field = [
+        'log_id',
+        'site_id',
+        'goods_id',
+        'num',
+        'type',
+        'option_data',
+        'create_time',
+        'create_uid'
+    ];
+
 }

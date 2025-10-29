@@ -14,12 +14,12 @@ use addon\saler_tools\app\model\Goods as GoodsModel;
 use addon\saler_tools\app\service\diy\dict\GoodsDict;
 use addon\saler_tools\app\service\goods\GoodsLogService;
 use addon\saler_tools\app\service\shop\ShopService;
+use think\facade\Db;
 use app\model\sys\SysUser;
 use core\exception\AdminException;
 use think\Response;
 use app\model\member\CustomerModel;
 use Kkokk\Poster\Facades\Facade;
-use think\facade\Db;
 
 /**
  * 订单服务
@@ -243,6 +243,12 @@ class OrderService extends BaseAdminService
                     $goods->sale_num = bcadd($goods->sale_num, $order->goods_num);// 增加销量
                     $goods->lock_num = bcsub($goods->lock_num, $order->goods_num);// 减去锁单数量
 
+                    // 记录商品操作日志 - 锁单转开单
+                    // GoodsLogService::setLog($this->site_id, $goods->goods_id, $order->goods_num, GoodsDict::CREATE_ORDER, [
+                    //     'order_id' => $data['order_id'] ?? '',
+                    //     'order_no' => $order->order_no ?? ''
+                    // ], $this->uid);
+
                     // 库存和锁单数量都小于0则删除商品
                     if ($goods->stock <= 0 && $goods->lock_num <= 0) {
                         $goods->deleted_time = time();
@@ -306,6 +312,7 @@ class OrderService extends BaseAdminService
                 }
             }
             $billing_goods_num = array_sum($billing_goods_num);
+            $data['goods_num'] = $billing_goods_num;
 
             if ($goods['stock'] < $billing_goods_num) return fail('goods_no_stock');
 
@@ -328,6 +335,12 @@ class OrderService extends BaseAdminService
 
                 $goods_model->where('goods_id', $goods_id)->setDec('stock', $billing_goods_num);
                 $goods_model->where('goods_id', $goods_id)->setInc('sale_num', $billing_goods_num);
+
+                // 记录商品操作日志 - 开单销售
+                GoodsLogService::setLog($this->site_id, $goods_id, $billing_goods_num, GoodsDict::CREATE_ORDER, [
+                    'money' => $data['money'] ?? '',
+                    'goods_num' => $data['goods_num'] ?? '',
+                ], $this->uid);
 
                 // 如果已经卖完则下架删除
                 $goods_model->where([
@@ -568,7 +581,16 @@ class OrderService extends BaseAdminService
                 "update_time"         => date('Y-m-d H:i:s'),
                 'address_info'        => $data['address_info'] ?? '',
             ];
-            GoodsLogService::setLog($data['site_id'], $goods_id, $data['goods_num'], GoodsDict::LOCK);
+            
+            
+            $money = 0;
+            foreach (json_decode($data['goods_attr_list'], true) as $key => $val){
+                $money += $val['price'] * $val['goods_num'];
+            }
+            GoodsLogService::setLog($data['site_id'], $goods_id, $data['goods_num'], GoodsDict::LOCK, [
+                    'money' => $money,
+                    'goods_num' => $data['goods_num'] ?? '',
+                ], $data['create_uid']);
 
             $order_model->create($data);
 
@@ -707,7 +729,15 @@ class OrderService extends BaseAdminService
 
                     $goods->save();
 
-                    GoodsLogService::setLog($this->site_id, $goods->goods_id, $order['goods_num'], GoodsDict::UNLOCK);
+                    $money = 0;
+                    $attr_list = json_decode($goods->goods_attr_list, true);
+                    foreach ($attr_list as $key => $val){
+                        $money += $val['price'] * $order['goods_num'];
+                    }
+                    GoodsLogService::setLog($this->site_id, $goods->goods_id, $order['goods_num'], GoodsDict::UNLOCK, [
+                        'money' => $money ?? '',
+                        'goods_num' => $order['goods_num'] ?? '',
+                    ], $this->uid);
 
                 }
             }

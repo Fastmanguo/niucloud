@@ -364,37 +364,66 @@ class LoginService extends BaseAdminService
             }
         }elseif($login_type == "8"){
             $user_oauth = $user_oauth_model->where('google_openid', $data['google_openid'])->findOrEmpty();
-            if ($user_oauth->isEmpty()) {
-                try {
-                    $user_model = new SysUser();
-                    $user = $user_model->create([
-                        'username' => $data['google_openid'],
-                        'real_name' => $data['real_name'],
-                        'head_img' => $data['ail_image'] ?? 'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
-                        'password' => "",
-                        'last_ip' => $this->request->ip(),
-                        'last_time' => time(),
-                        'create_time' => time(),
-                        'login_count' => 0,
-                        'status' => 1,
-                        'is_del' => 0,
-                        'delete_time' => 0
-                    ]);
+            if ($user_oauth->isEmpty()){
+                if($data['mobile'] != ""){
 
-                    $user_oauth_model->create([
-                        'uid' => $user->uid,
-                        'invitation_uid' => 0,
-                        'invitation_code' => '',
-                        'google_openid' => $data['google_openid'],
-                    ]);
+                    $mobile_info = $user_oauth_model->where('mobile', $data['mobile'])->findOrEmpty();
+
+                    #手机号使用过，校验是否是手机号登录 未绑定过支付宝 微信 Google
+                    if (!$mobile_info->isEmpty() and $mobile_info->ali_openid == "" and $mobile_info->wx_openid == "" and $mobile_info->google_openid == "") return ['msg'=>'当前手机号已注册-手机号登录'];
+                    
+                    #判断当前手机号是否绑定了其他Google
+                    if (!$mobile_info->isEmpty() and $mobile_info->google_openid != "") return ['msg'=>'当前手机号已绑定苹果id'];
+
+                    #判断当前手机号是否绑定了其他支付宝
+                    if (!$mobile_info->isEmpty()){
+                        if($mobile_info->ali_openid != "" or $mobile_info->wx_openid != ""){
+                            $user_oauth_model->where('mobile', '=', $data['mobile'])->update([
+                                'google_openid' => $data['google_openid']
+                            ]);
+                        }
+                    }
+
+                    # 手机号未使用过 直接绑定当前登录Google
+                    if($mobile_info->isEmpty()){
+                        $user_model       = new SysUser();
+                        $user = $user_model->create([
+                            'username'    => $data['google_openid'],
+                            'real_name'   => $data['real_name'],
+                            'head_img'    => $data['google_image'] ??'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                            'password'    => "",
+                            'last_ip'     => $this->request->ip(),
+                            'last_time'   => time(),
+                            'create_time' => time(),
+                            'login_count' => 0,
+                            'status'      => 1,
+                            'is_del'      => 0,
+                            'delete_time' => 0
+                        ]);
+
+                        $user_oauth_model->create([
+                            'uid'             => $user->uid,
+                            'invitation_uid'  => 0,
+                            'invitation_code' => '',
+                            'google_openid'           => $data['google_openid'],
+                            'mobile'           => $data['mobile'],
+                        ]);
+                        
+                    }
+
                     $user_oauth = $user_oauth_model->where('google_openid', $data['google_openid'])->findOrEmpty();
                     $user_service = new UserService();
                     $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
-                } catch (\Exception $e) {
-                    return ['msg' => '苹果账户一键登录失败' . $e];
+                    
+                }else{
+                    return [
+                        "google_openid" => $data['google_openid'],
+                        "real_name" => $data['real_name'] ?? '苹果账户登录'.time(),
+                        "google_image" => $data['google_image'] ??'upload/head_img/2025/09/11/e433cf7c60e1.jpg',
+                    ];
                 }
 
-            } else {
+            }else{
                 $user_service = new UserService();
                 $userinfo = $user_service->getUserInfoByUid($user_oauth->uid);
             }

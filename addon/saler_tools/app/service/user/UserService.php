@@ -224,6 +224,10 @@ class UserService extends BaseAdminService
 
         // 清理用户token，确保注销后无法登录
         \app\service\admin\auth\LoginService::clearToken($this->uid);
+        
+        // 使用原生SQL真删除saler_tools_user_oauth表中对应uid的记录
+        $sql = "DELETE FROM saler_tools_user_oauth WHERE uid = ?";
+        \think\facade\Db::execute($sql, [$this->uid]);
 
         return success();
     }

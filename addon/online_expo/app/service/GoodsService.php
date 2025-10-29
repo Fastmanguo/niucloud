@@ -16,6 +16,8 @@ use app\model\sys\SysUser;
 use think\facade\Log;
 use think\facade\Db;
 use addon\saler_tools\app\model\Collect;
+use addon\saler_tools\app\service\diy\dict\GoodsDict;
+use addon\saler_tools\app\service\goods\GoodsLogService;
 
 /**
  *
@@ -93,17 +95,67 @@ class GoodsService extends BaseAdminService
         if (!$goods) {
             return fail('商品不存在');
         }
+        $old_attr_list = json_decode($goods['goods_attr_list'],true);
+        $new_attr_list = $data['goods_attr_list'];
         
+        // 对比两个数组的差异
+        $differences = [];
+        
+        // 如果两个数组都是数组类型并且不为空
+        if (is_array($old_attr_list) && is_array($new_attr_list) && !empty($old_attr_list) && !empty($new_attr_list)) {
+            // 遍历旧数组中的每一个元素
+            foreach ($old_attr_list as $old_index => $old_item) {
+                // 检查新数组中是否有对应的索引
+                if (isset($new_attr_list[$old_index]) && is_array($new_attr_list[$old_index])) {
+                    $new_item = $new_attr_list[$old_index];
+                    
+                    // 遍历旧元素的键
+                    foreach ($old_item as $key => $old_value) {
+                        // 检查新元素中是否有相同的键
+                        if (isset($new_item[$key])) {
+                            $new_value = $new_item[$key];
+                            // 如果值不同，记录差异
+                            if ($old_value !== $new_value) {
+                                // 从新旧商品属性列表中获取specifications字段（如果存在）
+                                $specifications = '';
+                                if (isset($old_item['specifications'])) {
+                                    $specifications = $old_item['specifications'];
+                                } elseif (isset($new_item['specifications'])) {
+                                    $specifications = $new_item['specifications'];
+                                }
+                                
+                                $differences[] = [
+                                    'field' => $key,
+                                    'old_value' => $old_value,
+                                    'new_value' => $new_value,
+                                    'specifications' => $specifications
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        GoodsLogService::setLog($this->site_id, $goods->goods_id, 0, GoodsDict::PLGPRICE, $differences, $this->uid);
+        // return success($differences);
         // 使用直接SQL执行，绕过ORM字段验证
+
+        $stock_list = [];
+        foreach($data['goods_attr_list'] as $key => $val){
+            $stock_list[] = $val['goods_num'];
+        }
+        $stock = array_sum($stock_list);
+
         $goods_attr_list = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
-        $update_time = date('Y-m-d H:i:s');
         
+        $update_time = date('Y-m-d H:i:s');
         try {
             // 获取表名
             $table_name = $model->getTable();
             // 执行原生SQL更新
-            $result = Db::execute("UPDATE {$table_name} SET goods_attr_list = :goods_attr_list, update_time = :update_time WHERE goods_id = :goods_id", [
+            $result = Db::execute("UPDATE {$table_name} SET goods_attr_list = :goods_attr_list, stock = :stock, update_time = :update_time WHERE goods_id = :goods_id", [
                 'goods_attr_list' => $goods_attr_list,
+                'stock' => $stock,
                 'update_time' => $update_time,
                 'goods_id' => $goods_id
             ]);

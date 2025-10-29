@@ -181,13 +181,17 @@ class Goods extends BaseAdminController
             'goods_attr_list.default'       => [],
             "customer_id.default"           => "",
             "customer_type.default"         => "",
+            "depositId.default"            => "",
         ]);
         $arr_num = [];
+        $dj_price = [];
         foreach($data['goods_attr_list'] as $k => $v){
             $data['goods_attr_list'][$k]['id'] = $k;
             $arr_num[] = $v['goods_num'];
+            $dj_price[] = $v['goods_num'] * $v['price'];
         }
         $data['stock'] = array_sum($arr_num);
+        $data['dj_price'] = array_sum($dj_price);
         $data['goods_attr_list'] = json_encode($data['goods_attr_list'], JSON_UNESCAPED_UNICODE);
         return app(GoodsService::class)->add($data);
 
@@ -504,6 +508,19 @@ class Goods extends BaseAdminController
             'date_type.default'   => 1,
         ]);
         return app(GoodsService::class)->getGoodsLong($data);
+    }
+
+
+    /**
+     * 获取商品操作日志
+     */
+    public function getHistory(){
+        $data = $this->_vali([
+            'goods_id.require'   => "请输入商品id",
+            'page.default'   => 1,
+            'limit.default'   => 20,
+        ]);
+        return app(GoodsService::class)->getHistory($data);
     }
 
 }

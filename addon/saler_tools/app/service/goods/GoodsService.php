@@ -19,6 +19,8 @@ use addon\saler_tools\app\model\Collect;
 use addon\saler_tools\app\service\dict\SiteDictService;
 use addon\saler_tools\app\service\order\OrderService;
 use addon\saler_tools\app\service\shop\ShopService;
+use addon\saler_tools\app\service\goods\GoodsLogService;
+use addon\saler_tools\app\service\diy\dict\GoodsDict;
 use think\db\Query;
 use think\db\Raw;
 use think\facade\Db;
@@ -542,7 +544,23 @@ class GoodsService extends BaseAdminService
                 $cost_model->create($cost);
             }
 
-
+            // 记录商品操作日志
+            $log_type = GoodsDict::CREATE;
+            if ($data['is_sale'] == 1) {
+                $log_type = GoodsDict::CREATE_ON_SALE;
+            }
+            $logData = [
+                'goods_name' => $goods->goods_name,
+                'goods_attribute' => $data['goods_attribute'] ?? ''
+            ];
+            if($data['depositId'] != ""){
+                $log_type = GoodsDict::DJFIND;
+                $logData = [
+                    'goods_num' => $data['stock'],
+                    'money' => $data['dj_price'],
+                ];
+            }
+            GoodsLogService::setLog($this->site_id, $goods->goods_id, $goods->stock, $log_type, $logData, $this->uid);
 
             $model->commit();
             return success(['goods_id' => $goods->goods_id]);
@@ -589,6 +607,11 @@ class GoodsService extends BaseAdminService
                 $cost_model->create($cost);
             }
 
+            // 记录商品操作日志
+            GoodsLogService::setLog($this->site_id, $goods->goods_id, 0, GoodsDict::UPDATE, [
+                'goods_name' => $goods->goods_name,
+            ], $this->uid);
+
             $model->commit();
 
             return success();
@@ -617,6 +640,11 @@ class GoodsService extends BaseAdminService
 
             $goods->save(['is_sale' => 1, 'update_uid' => $this->uid]);
 
+            // 记录商品操作日志
+            GoodsLogService::setLog($this->site_id, $goods_id, 0, GoodsDict::ON_SALE, [
+                'goods_name' => $goods->goods_name
+            ], $this->uid);
+
             $model->commit();
 
             return success();
@@ -642,6 +670,12 @@ class GoodsService extends BaseAdminService
         $model->startTrans();
         try {
             $goods->save(['is_sale' => 0, 'update_uid' => $this->uid]);
+            
+            // 记录商品操作日志
+            GoodsLogService::setLog($this->site_id, $goods_id, 0, GoodsDict::OFF_SALE, [
+                'goods_name' => $goods->goods_name
+            ], $this->uid);
+            
             $model->commit();
             return success();
         } catch (\Exception $e) {
@@ -840,6 +874,11 @@ class GoodsService extends BaseAdminService
 
         $goods->deleted_time = time();
         $goods->save();
+
+        // 记录商品操作日志
+        GoodsLogService::setLog($this->site_id, $goods_id, 0, GoodsDict::DELETE, [
+            'goods_name' => $goods->goods_name,
+        ], $this->uid);
 
         return success();
     }
@@ -1412,5 +1451,83 @@ class GoodsService extends BaseAdminService
         ];
         
         return success($result);
+    }
+
+
+    /**
+     * 获取商品操作日志
+     */
+    public function getHistory($data){
+        $goods_id = $data['goods_id'] ?? 0;
+        $page = $data['page'] ?? 1;
+        $limit = $data['limit'] ?? 20;
+        
+        if (empty($goods_id)) {
+            return fail('商品ID不能为空');
+        }
+        
+        // 构建查询SQL
+        $sql = "SELECT 
+                    gl.*,
+                    u.real_name as operator_name,
+                    u.head_img as operator_avatar
+                FROM saler_tools_goods_log gl
+                LEFT JOIN sys_user u ON gl.create_uid = u.uid
+                WHERE gl.goods_id = :goods_id
+                ORDER BY gl.log_id DESC
+                LIMIT :offset, :limit";
+        
+        // 计算偏移量
+        $offset = ($page - 1) * $limit;
+        
+        // 查询数据
+        $logs = Db::query($sql, [
+            'goods_id' => $goods_id,
+            'offset' => $offset,
+            'limit' => $limit
+        ]);
+        
+        // 查询总数
+        $countSql = "SELECT COUNT(*) as count FROM saler_tools_goods_log WHERE goods_id = :goods_id";
+        $totalResult = Db::query($countSql, [
+            'goods_id' => $goods_id
+        ]);
+        $total = $totalResult[0]['count'] ?? 0;
+        
+        // 处理数据
+        $result = [];
+        foreach ($logs as $log) {
+            // 解析 option_data
+            $optionData = [];
+            if (!empty($log['option_data'])) {
+                $optionData = json_decode($log['option_data'], true) ?? [];
+            }
+            
+            // 获取操作类型名称
+            $typeName = GoodsDict::GOODS_LOG_TYPE[$log['type']] ?? '未知操作';
+            
+            $result[] = [
+                'log_id' => $log['log_id'],
+                'goods_id' => $log['goods_id'],
+                // 'num' => $log['num'],
+                'type' => $log['type'],
+                'type_name' => $typeName,
+                'option_data' => $optionData,
+                // 'create_time' => $log['create_time'],
+                'create_time_text' => date('Y-m-d H:i:s', $log['create_time']),
+                // 'create_time_date' => date('Y-m-d', $log['create_time']),
+                'user_name' => $log['operator_name'] ?? '未知',
+                'user_image' => $log['operator_avatar'] ?? '',
+                'create_uid' => $log['create_uid']
+            ];
+        }
+        
+        return success([
+            'list' => $result,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'pages' => ceil($total / $limit)
+        ]);
     }
 }

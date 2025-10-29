@@ -307,7 +307,7 @@ class Order extends BaseAdminController
             'lock_remark.default'     => '',
             // 'goods_num.min:1'         => 'order_goods_num_min',
         ]);
-        return success($data);
+        // return success($data);
         $goods_num_list = [];
         foreach($data['goods_attr_list'] as $key => $val){
             $goods_num_list[] = $val['lock_goods_num'];
